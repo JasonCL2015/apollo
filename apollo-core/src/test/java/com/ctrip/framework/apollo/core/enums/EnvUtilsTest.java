@@ -9,16 +9,18 @@ public class EnvUtilsTest {
   @Test
   public void testTransformEnv() throws Exception {
     assertEquals(Env.DEV, EnvUtils.transformEnv(Env.DEV.name()));
-    assertEquals(Env.FAT, EnvUtils.transformEnv(Env.FAT.name().toLowerCase()));
-    assertEquals(Env.UAT, EnvUtils.transformEnv(" " + Env.UAT.name().toUpperCase() + ""));
+    assertEquals(Env.TESTIN, EnvUtils.transformEnv(" " + Env.TESTIN.name().toUpperCase() + ""));
+    assertEquals(Env.TESTOUT, EnvUtils.transformEnv(" " + Env.TESTOUT.name().toUpperCase() + ""));
+    assertEquals(Env.ONLINE, EnvUtils.transformEnv(Env.ONLINE.name().toLowerCase()));
     assertEquals(Env.UNKNOWN, EnvUtils.transformEnv("someInvalidEnv"));
   }
 
   @Test
   public void testFromString() throws Exception {
     assertEquals(Env.DEV, Env.fromString(Env.DEV.name()));
-    assertEquals(Env.FAT, Env.fromString(Env.FAT.name().toLowerCase()));
-    assertEquals(Env.UAT, Env.fromString(" " + Env.UAT.name().toUpperCase() + ""));
+    assertEquals(Env.ONLINE, Env.fromString(Env.ONLINE.name().toLowerCase()));
+    assertEquals(Env.TESTIN, Env.fromString(" " + Env.TESTIN.name().toUpperCase() + ""));
+    assertEquals(Env.TESTOUT, Env.fromString(" " + Env.TESTOUT.name().toUpperCase() + ""));
   }
 
   @Test(expected = IllegalArgumentException.class)

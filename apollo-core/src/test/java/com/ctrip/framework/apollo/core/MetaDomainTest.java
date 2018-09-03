@@ -24,9 +24,9 @@ public class MetaDomainTest extends BaseIntegrationTest {
 
   @Test
   public void testGetMetaDomain() {
-    assertEquals("http://localhost:8080", MetaDomainConsts.getDomain(Env.LOCAL));
+    assertEquals("http://localhost:8080", MetaDomainConsts.getDomain(Env.TESTIN));
     assertEquals("http://dev:8080", MetaDomainConsts.getDomain(Env.DEV));
-    assertEquals(MetaDomainConsts.DEFAULT_META_URL, MetaDomainConsts.getDomain(Env.PRO));
+    assertEquals(MetaDomainConsts.DEFAULT_META_URL, MetaDomainConsts.getDomain(Env.ONLINE));
   }
 
   @Test
@@ -37,11 +37,11 @@ public class MetaDomainTest extends BaseIntegrationTest {
     String validServer = " http://localhost:" + PORT + " ";
     String invalidServer = "http://localhost:" + findFreePort();
 
-    MockMetaServerProvider.mock(Env.FAT, validServer + "," + invalidServer);
-    MockMetaServerProvider.mock(Env.UAT, invalidServer + "," + validServer);
+    MockMetaServerProvider.mock(Env.ONLINE, validServer + "," + invalidServer);
+    MockMetaServerProvider.mock(Env.TESTOUT, invalidServer + "," + validServer);
 
-    assertEquals(validServer.trim(), MetaDomainConsts.getDomain(Env.FAT));
-    assertEquals(validServer.trim(), MetaDomainConsts.getDomain(Env.UAT));
+    assertEquals(validServer.trim(), MetaDomainConsts.getDomain(Env.ONLINE));
+    assertEquals(validServer.trim(), MetaDomainConsts.getDomain(Env.TESTOUT));
   }
 
   @Test
@@ -49,9 +49,9 @@ public class MetaDomainTest extends BaseIntegrationTest {
     String invalidServer = "http://localhost:" + findFreePort() + " ";
     String anotherInvalidServer = "http://localhost:" + findFreePort() + " ";
 
-    MockMetaServerProvider.mock(Env.LPT, invalidServer + "," + anotherInvalidServer);
+    MockMetaServerProvider.mock(Env.TESTOUT, invalidServer + "," + anotherInvalidServer);
 
-    String metaServer = MetaDomainConsts.getDomain(Env.LPT);
+    String metaServer = MetaDomainConsts.getDomain(Env.TESTOUT);
 
     assertTrue(metaServer.equals(invalidServer.trim()) || metaServer.equals(anotherInvalidServer.trim()));
   }

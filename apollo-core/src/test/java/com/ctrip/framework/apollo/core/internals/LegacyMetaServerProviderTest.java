@@ -16,9 +16,9 @@ public class LegacyMetaServerProviderTest {
   @Test
   public void testFromPropertyFile() {
     LegacyMetaServerProvider legacyMetaServerProvider = new LegacyMetaServerProvider();
-    assertEquals("http://localhost:8080", legacyMetaServerProvider.getMetaServerAddress(Env.LOCAL));
+    assertEquals("http://localhost:8080", legacyMetaServerProvider.getMetaServerAddress(Env.TESTIN));
     assertEquals("http://dev:8080", legacyMetaServerProvider.getMetaServerAddress(Env.DEV));
-    assertEquals(null, legacyMetaServerProvider.getMetaServerAddress(Env.PRO));
+    assertEquals(null, legacyMetaServerProvider.getMetaServerAddress(Env.TESTOUT));
   }
 
   @Test
@@ -31,6 +31,6 @@ public class LegacyMetaServerProviderTest {
     LegacyMetaServerProvider legacyMetaServerProvider = new LegacyMetaServerProvider();
 
     assertEquals(someDevMetaAddress, legacyMetaServerProvider.getMetaServerAddress(Env.DEV));
-    assertEquals(someFatMetaAddress, legacyMetaServerProvider.getMetaServerAddress(Env.FAT));
+    assertEquals(someFatMetaAddress, legacyMetaServerProvider.getMetaServerAddress(Env.ONLINE));
   }
 }

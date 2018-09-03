@@ -96,7 +96,7 @@ public class ConfigServiceTest extends AbstractUnitTest {
     ItemDTO sourceItem1 = new ItemDTO("a", "b", "comment", 1);
     List<ItemDTO> sourceItems = Arrays.asList(sourceItem1);
 
-    String appId = "6666", env = "LOCAL", clusterName = ConfigConsts.CLUSTER_NAME_DEFAULT,
+    String appId = "6666", env = "TESTIN", clusterName = ConfigConsts.CLUSTER_NAME_DEFAULT,
         namespaceName = ConfigConsts.NAMESPACE_APPLICATION;
     List<NamespaceIdentifier>
         namespaceIdentifiers =
@@ -139,7 +139,7 @@ public class ConfigServiceTest extends AbstractUnitTest {
     ItemDTO targetItem3 = new ItemDTO("d", "b", "oldComment", 3);
     List<ItemDTO> targetItems = Arrays.asList(targetItem1, targetItem2, targetItem3);
 
-    String appId = "6666", env = "LOCAL", clusterName = ConfigConsts.CLUSTER_NAME_DEFAULT,
+    String appId = "6666", env = "TESTIN", clusterName = ConfigConsts.CLUSTER_NAME_DEFAULT,
         namespaceName = ConfigConsts.NAMESPACE_APPLICATION;
     List<NamespaceIdentifier>
         namespaceIdentifiers =
@@ -165,7 +165,7 @@ public class ConfigServiceTest extends AbstractUnitTest {
 
     NamespaceIdentifier namespaceIdentifier = itemDiffs.getNamespace();
     assertEquals(appId, namespaceIdentifier.getAppId());
-    assertEquals(Env.valueOf("LOCAL"), namespaceIdentifier.getEnv());
+    assertEquals(Env.valueOf("TESTIN"), namespaceIdentifier.getEnv());
     assertEquals(clusterName, namespaceIdentifier.getClusterName());
     assertEquals(namespaceName, namespaceIdentifier.getNamespaceName());
 

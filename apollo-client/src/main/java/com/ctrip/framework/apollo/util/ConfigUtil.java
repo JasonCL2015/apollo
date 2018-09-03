@@ -224,7 +224,7 @@ public class ConfigUtil {
 
   public boolean isInLocalMode() {
     try {
-      return Env.LOCAL == getApolloEnv();
+      return Env.DEV == getApolloEnv();
     } catch (Throwable ex) {
       //ignore
     }

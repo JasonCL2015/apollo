@@ -52,4 +52,17 @@
 		</dependency>
 		<!-- end of test -->
 	</dependencies>
+
+	<distributionManagement>
+		<repository>
+			<id>releases</id>
+			<name>releases</name>
+			<url>http://yijiqingchen.com:9000/nexus/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<name>snapshots</name>
+			<id>snapshots</id>
+			<url>http://yijiqingchen.com:9000/nexus/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 </project>

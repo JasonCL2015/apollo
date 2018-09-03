@@ -11,10 +11,14 @@ import com.google.common.base.Strings;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.logging.LogFile;
+import org.springframework.boot.logging.LoggingInitializationContext;
+import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.util.ResourceUtils;
 
 /**
  * Initialize apollo system properties and inject the Apollo config in Spring Boot bootstrap phase
@@ -78,6 +82,29 @@ public class ApolloApplicationContextInitializer implements
     }
 
     environment.getPropertySources().addFirst(composite);
+    reinitializeLoggingSystem(environment);
+  }
+
+  /**
+   * Learning from {@see org.springframework.cloud.bootstrap.config.PropertySourceBootstrapConfiguration} which is in spring-cloud.
+   * @param environment
+   */
+  private void reinitializeLoggingSystem(ConfigurableEnvironment environment) {
+    String logConfig = environment.resolvePlaceholders("${logging.config:}");
+    LogFile logFile = LogFile.get(environment);
+    LoggingSystem system = LoggingSystem.get(LoggingSystem.class.getClassLoader());
+    try {
+      ResourceUtils.getURL(logConfig).openStream().close();
+      // Three step initialization that accounts for the clean up of the logging
+      // context before initialization. Spring Boot doesn't initialize a logging
+      // system that hasn't had this sequence applied (since 1.4.1).
+      system.cleanUp();
+      system.beforeInitialize();
+      system.initialize(new LoggingInitializationContext(environment), logConfig, logFile);
+    } catch (Exception ex) {
+      logger.warn("Logging config file location '" + logConfig
+              + "' cannot be opened and will be ignored");
+    }
   }
 
   /**

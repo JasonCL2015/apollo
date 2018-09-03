@@ -70,7 +70,7 @@ public class DefaultConfigFactoryTest {
   @Test
   public void testCreateLocalConfigRepositoryInLocalDev() throws Exception {
     String someNamespace = "someName";
-    someEnv = Env.LOCAL;
+    someEnv = Env.TESTIN;
 
     LocalFileConfigRepository localFileConfigRepository =
         defaultConfigFactory.createLocalConfigRepository(someNamespace);

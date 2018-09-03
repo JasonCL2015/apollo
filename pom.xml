@@ -93,17 +93,17 @@
 	</properties>
 
 	<modules>
-		<module>apollo-buildtools</module>
+		<!--<module>apollo-buildtools</module>-->
 		<module>apollo-core</module>
 		<module>apollo-client</module>
-		<module>apollo-common</module>
-		<module>apollo-biz</module>
-		<module>apollo-configservice</module>
-		<module>apollo-adminservice</module>
-		<module>apollo-portal</module>
-		<module>apollo-assembly</module>
-		<module>apollo-demo</module>
-		<module>apollo-mockserver</module>
+		<!--<module>apollo-common</module>-->
+		<!--<module>apollo-biz</module>-->
+		<!--<module>apollo-configservice</module>-->
+		<!--<module>apollo-adminservice</module>-->
+		<!--<module>apollo-portal</module>-->
+		<!--<module>apollo-assembly</module>-->
+		<!--<module>apollo-demo</module>-->
+		<!--<module>apollo-mockserver</module>-->
 	</modules>
 
 	<dependencyManagement>
@@ -905,11 +905,13 @@
 	<distributionManagement>
 		<repository>
 			<id>releases</id>
-			<url>${releases.repo}</url>
+			<name>releases</name>
+			<url>http://yijiqingchen.com:9000/nexus/content/repositories/releases</url>
 		</repository>
 		<snapshotRepository>
+			<name>snapshots</name>
 			<id>snapshots</id>
-			<url>${snapshots.repo}</url>
+			<url>http://yijiqingchen.com:9000/nexus/content/repositories/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
 </project>
