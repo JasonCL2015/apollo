@@ -200,11 +200,14 @@ public class ConfigUtil {
     String cacheRoot = getCustomizedCacheRoot();
 
     if (!Strings.isNullOrEmpty(cacheRoot)) {
-      return cacheRoot + File.separator + getAppId();
+//      return cacheRoot + File.separator + getAppId();
+      return cacheRoot;
     }
 
-    cacheRoot = isOSWindows() ? "C:\\opt\\data\\%s" : "/opt/data/%s";
-    return String.format(cacheRoot, getAppId());
+//    cacheRoot = isOSWindows() ? "C:\\opt\\data\\%s" : "/home/admin/%s";
+    cacheRoot = isOSWindows() ? "C:\\opt\\data\\%s" : "/home/admin/";
+    return cacheRoot;
+//    return String.format(cacheRoot, getAppId());
   }
 
   private String getCustomizedCacheRoot() {

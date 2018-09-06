@@ -68,11 +68,14 @@ public class LocalFileConfigRepository extends AbstractConfigRepository
       String defaultCacheDir = m_configUtil.getDefaultLocalCacheDir();
       Path path = Paths.get(defaultCacheDir);
       if (!Files.exists(path)) {
+        logger.info("缓存目录不存在，创建缓存目录:" + path.toString());
         Files.createDirectories(path);
       }
       if (Files.exists(path) && Files.isWritable(path)) {
+        logger.info("缓存目录存在，并且具备写权限，写入配置缓存:" + defaultCacheDir);
         return new File(defaultCacheDir, CONFIG_DIR);
       }
+      logger.info("缓存目录存在，但是不具备写权限，无法写入配置缓存:" + defaultCacheDir);
     } catch (Throwable ex) {
       //ignore
     }
