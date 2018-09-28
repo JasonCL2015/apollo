@@ -56,7 +56,7 @@ public class ApolloApplicationContextInitializer implements
   @Override
   public void initialize(ConfigurableApplicationContext context) {
     ConfigurableEnvironment environment = context.getEnvironment();
-
+    logger.info("######### initialize context on ApolloApplicationContextInitializer");
     initializeSystemProperty(environment);
 
     String enabled = environment.getProperty(PropertySourcesConstants.APOLLO_BOOTSTRAP_ENABLED, "false");

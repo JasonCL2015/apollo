@@ -10,6 +10,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.ctrip.framework.apollo.core.utils.StringUtils;
+import com.ctrip.framework.apollo.util.AESUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +64,8 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
   private Gson gson;
   private static final Escaper pathEscaper = UrlEscapers.urlPathSegmentEscaper();
   private static final Escaper queryParamEscaper = UrlEscapers.urlFormParameterEscaper();
+  //加密前缀
+  private static final String PASSWORDPRE = "{apollo}";
 
   static {
     m_executorService = Executors.newScheduledThreadPool(1,
@@ -150,9 +154,32 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     }
   }
 
+  /**
+   * <p> 将获得的配置文件转换成properties输出，这里对加密字段做解密处理 </p>
+   * @param apolloConfig
+   * @return Properties
+   * @author 文远（wenyuan@maihaoche.com）
+   * @date 2018/9/28 上午10:55 
+   * @since V1.1.0-SNAPSHOT
+   * 
+   */
   private Properties transformApolloConfigToProperties(ApolloConfig apolloConfig) {
     Properties result = new Properties();
+    Map<String, String> configMap = apolloConfig.getConfigurations();
+    for (String key : configMap.keySet()) {
+      String val = configMap.get(key);
+      if (!StringUtils.isEmpty(val) && val.contains(PASSWORDPRE)) {
+        String passwordHexString = val.replace(PASSWORDPRE, "");
+        try {
+          val = new String(AESUtil.decryptAES(passwordHexString));
+          configMap.put(key, val);
+        } catch (Exception e) {
+          logger.error("解密字符串失败:" + e);
+        }
+      }
+    }
     result.putAll(apolloConfig.getConfigurations());
+
     return result;
   }
 
@@ -198,7 +225,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
         url = assembleQueryConfigUrl(configService.getHomepageUrl(), appId, cluster, m_namespace,
                 dataCenter, m_remoteMessages.get(), m_configCache.get());
 
-        logger.debug("Loading config from {}", url);
+        logger.info("Loading config from {}", url);
         HttpRequest request = new HttpRequest(url);
 
         Transaction transaction = Tracer.newTransaction("Apollo.ConfigService", "queryConfig");
@@ -213,13 +240,13 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
           transaction.setStatus(Transaction.SUCCESS);
 
           if (response.getStatusCode() == 304) {
-            logger.debug("Config server responds with 304 HTTP status code.");
+            logger.info("Config server responds with 304 HTTP status code.");
             return m_configCache.get();
           }
 
           ApolloConfig result = response.getBody();
 
-          logger.debug("Loaded config for {}: {}", m_namespace, result);
+          logger.info("Loaded config for {}: {}", m_namespace, result);
 
           return result;
         } catch (ApolloConfigStatusCodeException ex) {
@@ -316,5 +343,15 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     }
 
     return services;
+  }
+
+
+  public static void main(String[] args) throws Exception {
+    String pwd = "{apollo}3da73386e4e0827f771c205a2e70d0f0";
+    System.out.println(pwd.contains(PASSWORDPRE));
+    String password = pwd.replace(PASSWORDPRE, "");
+    System.out.println(password);
+    System.out.println(new String(AESUtil.decryptAES(password)));
+
   }
 }

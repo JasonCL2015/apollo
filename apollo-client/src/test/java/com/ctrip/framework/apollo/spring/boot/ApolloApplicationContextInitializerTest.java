@@ -12,11 +12,11 @@ import org.springframework.core.env.ConfigurableEnvironment;
 
 public class ApolloApplicationContextInitializerTest {
 
-  private ApolloApplicationContextInitializer apolloApplicationContextInitializer;
+//  private ApolloApplicationContextInitializer apolloApplicationContextInitializer;
 
   @Before
   public void setUp() throws Exception {
-    apolloApplicationContextInitializer = new ApolloApplicationContextInitializer();
+//    apolloApplicationContextInitializer = new ApolloApplicationContextInitializer();
   }
 
   @After
@@ -41,7 +41,7 @@ public class ApolloApplicationContextInitializerTest {
     when(environment.getProperty("apollo.cacheDir")).thenReturn(someCacheDir);
     when(environment.getProperty(ConfigConsts.APOLLO_META_KEY)).thenReturn(someApolloMeta);
 
-    apolloApplicationContextInitializer.initializeSystemProperty(environment);
+//    apolloApplicationContextInitializer.initializeSystemProperty(environment);
 
     assertEquals(someAppId, System.getProperty("app.id"));
     assertEquals(someCluster, System.getProperty(ConfigConsts.APOLLO_CLUSTER_KEY));
@@ -73,7 +73,7 @@ public class ApolloApplicationContextInitializerTest {
     when(environment.getProperty("apollo.cacheDir")).thenReturn(anotherCacheDir);
     when(environment.getProperty(ConfigConsts.APOLLO_META_KEY)).thenReturn(anotherApolloMeta);
 
-    apolloApplicationContextInitializer.initializeSystemProperty(environment);
+//    apolloApplicationContextInitializer.initializeSystemProperty(environment);
 
     assertEquals(someAppId, System.getProperty("app.id"));
     assertEquals(someCluster, System.getProperty(ConfigConsts.APOLLO_CLUSTER_KEY));
@@ -85,7 +85,7 @@ public class ApolloApplicationContextInitializerTest {
   public void testFillFromEnvironmentWithNoPropertyFromEnvironment() throws Exception {
     ConfigurableEnvironment environment = mock(ConfigurableEnvironment.class);
 
-    apolloApplicationContextInitializer.initializeSystemProperty(environment);
+//    apolloApplicationContextInitializer.initializeSystemProperty(environment);
 
     assertNull(System.getProperty("app.id"));
     assertNull(System.getProperty(ConfigConsts.APOLLO_CLUSTER_KEY));
