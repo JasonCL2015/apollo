@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.ctrip.framework.apollo.util.PropertiesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +53,8 @@ public class DefaultConfig extends AbstractConfig implements RepositoryChangeLis
 
   private void initialize() {
     try {
-      m_configProperties.set(m_configRepository.getConfig());
+      Properties properties = m_configRepository.getConfig();
+      m_configProperties.set(PropertiesUtil.descyptProperties(properties));
     } catch (Throwable ex) {
       Tracer.logError(ex);
       logger.warn("Init Apollo Local Config failed - namespace: {}, reason: {}.",

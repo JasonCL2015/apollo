@@ -1,11 +1,12 @@
 package com.ctrip.framework.apollo.core.dto;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * @author Jason Song(song_s@ctrip.com)
  */
-public class ApolloConfig {
+public class ApolloConfig implements Cloneable{
 
   private String appId;
 
@@ -28,6 +29,17 @@ public class ApolloConfig {
     this.cluster = cluster;
     this.namespaceName = namespaceName;
     this.releaseKey = releaseKey;
+  }
+
+  @Override
+  public ApolloConfig clone() throws CloneNotSupportedException{
+    ApolloConfig o = (ApolloConfig) super.clone();
+    Map<String, String> newConfigurations = new HashMap<>();
+    for(String key : this.configurations.keySet()) {
+      newConfigurations.put(key, this.configurations.get(key));
+    }
+    o.setConfigurations(newConfigurations);
+    return o;
   }
 
   public String getAppId() {

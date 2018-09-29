@@ -6,6 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.ctrip.framework.apollo.util.PropertiesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,8 @@ public abstract class AbstractConfigFile implements ConfigFile, RepositoryChange
 
   private void initialize() {
     try {
-      m_configProperties.set(m_configRepository.getConfig());
+      Properties properties = m_configRepository.getConfig();
+      m_configProperties.set(PropertiesUtil.descyptProperties(properties));
     } catch (Throwable ex) {
       Tracer.logError(ex);
       logger.warn("Init Apollo Config File failed - namespace: {}, reason: {}.",

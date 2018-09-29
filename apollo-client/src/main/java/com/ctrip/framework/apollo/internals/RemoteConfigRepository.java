@@ -1,20 +1,5 @@
 package com.ctrip.framework.apollo.internals;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import com.ctrip.framework.apollo.core.utils.StringUtils;
-import com.ctrip.framework.apollo.util.AESUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.ctrip.framework.apollo.Apollo;
 import com.ctrip.framework.apollo.build.ApolloInjector;
 import com.ctrip.framework.apollo.core.ConfigConsts;
@@ -41,6 +26,15 @@ import com.google.common.escape.Escaper;
 import com.google.common.net.UrlEscapers;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Jason Song(song_s@ctrip.com)
@@ -64,8 +58,6 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
   private Gson gson;
   private static final Escaper pathEscaper = UrlEscapers.urlPathSegmentEscaper();
   private static final Escaper queryParamEscaper = UrlEscapers.urlFormParameterEscaper();
-  //加密前缀
-  private static final String PASSWORDPRE = "{apollo}";
 
   static {
     m_executorService = Executors.newScheduledThreadPool(1,
@@ -165,21 +157,27 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
    */
   private Properties transformApolloConfigToProperties(ApolloConfig apolloConfig) {
     Properties result = new Properties();
-    Map<String, String> configMap = apolloConfig.getConfigurations();
-    for (String key : configMap.keySet()) {
-      String val = configMap.get(key);
-      if (!StringUtils.isEmpty(val) && val.contains(PASSWORDPRE)) {
-        String passwordHexString = val.replace(PASSWORDPRE, "");
-        try {
-          val = new String(AESUtil.decryptAES(passwordHexString));
-          configMap.put(key, val);
-        } catch (Exception e) {
-          logger.error("解密字符串失败:" + e);
-        }
-      }
-    }
     result.putAll(apolloConfig.getConfigurations());
-
+//    ApolloConfig subApolloConfig = null;
+//    try {
+//      subApolloConfig = apolloConfig.clone();
+//    } catch (CloneNotSupportedException e) {
+//      logger.error("apolloConfig clone error:" + e);
+//    }
+//    Map<String, String> configMap = subApolloConfig.getConfigurations();
+//    for (String key : configMap.keySet()) {
+//      String val = configMap.get(key);
+//      if (!StringUtils.isEmpty(val) && val.contains(PASSWORDPRE)) {
+//        String passwordHexString = val.replace(PASSWORDPRE, "");
+//        try {
+//          val = new String(AESUtil.decryptAES(passwordHexString));
+//          configMap.put(key, val);
+//        } catch (Exception e) {
+//          logger.error("解密字符串失败:" + e);
+//        }
+//      }
+//    }
+//    result.putAll(subApolloConfig.getConfigurations());
     return result;
   }
 
@@ -347,11 +345,17 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
 
 
   public static void main(String[] args) throws Exception {
-    String pwd = "{apollo}3da73386e4e0827f771c205a2e70d0f0";
-    System.out.println(pwd.contains(PASSWORDPRE));
-    String password = pwd.replace(PASSWORDPRE, "");
-    System.out.println(password);
-    System.out.println(new String(AESUtil.decryptAES(password)));
+//    String pwd = "{apollo}3da73386e4e0827f771c205a2e70d0f0";
+//    System.out.println(pwd.contains(PASSWORDPRE));
+//    String password = pwd.replace(PASSWORDPRE, "");
+//    System.out.println(password);
+//    System.out.println(new String(AESUtil.decryptAES(password)));
 
+    Map<String, String> configurations = new HashMap<>();
+    configurations.put("a", "a");
+    ApolloConfig apolloConfig = new ApolloConfig();
+    apolloConfig.setConfigurations(configurations);
+
+//    transformApolloConfigToProperties(apolloConfig);
   }
 }
