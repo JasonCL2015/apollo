@@ -17,7 +17,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.ctrip.framework.apollo</groupId>
-			<artifactId>apollo-client</artifactId>
+			<artifactId>apollo-client-mhc</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<!-- for spring demo -->

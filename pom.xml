@@ -97,7 +97,7 @@
 	</properties>
 
 	<modules>
-		<!--<module>apollo-buildtools</module>-->
+		<module>apollo-buildtools</module>
 		<module>apollo-core</module>
 		<module>apollo-client</module>
 		<!--<module>apollo-common</module>-->
@@ -128,7 +128,7 @@
 			</dependency>
 			<dependency>
 				<groupId>com.ctrip.framework.apollo</groupId>
-				<artifactId>apollo-client</artifactId>
+				<artifactId>apollo-client-mhc</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
