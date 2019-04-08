@@ -1,5 +1,19 @@
 package com.ctrip.framework.apollo.internals;
 
+import com.ctrip.framework.apollo.enums.ConfigSourceType;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ctrip.framework.apollo.Apollo;
 import com.ctrip.framework.apollo.build.ApolloInjector;
 import com.ctrip.framework.apollo.core.ConfigConsts;
@@ -43,25 +57,25 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
   private static final Logger logger = LoggerFactory.getLogger(RemoteConfigRepository.class);
   private static final Joiner STRING_JOINER = Joiner.on(ConfigConsts.CLUSTER_NAMESPACE_SEPARATOR);
   private static final Joiner.MapJoiner MAP_JOINER = Joiner.on("&").withKeyValueSeparator("=");
-  private ConfigServiceLocator m_serviceLocator;
-  private HttpUtil m_httpUtil;
-  private ConfigUtil m_configUtil;
-  private RemoteConfigLongPollService remoteConfigLongPollService;
-  private volatile AtomicReference<ApolloConfig> m_configCache;
-  private final String m_namespace;
-  private final static ScheduledExecutorService m_executorService;
-  private AtomicReference<ServiceDTO> m_longPollServiceDto;
-  private AtomicReference<ApolloNotificationMessages> m_remoteMessages;
-  private RateLimiter m_loadConfigRateLimiter;
-  private AtomicBoolean m_configNeedForceRefresh;
-  private SchedulePolicy m_loadConfigFailSchedulePolicy;
-  private Gson gson;
   private static final Escaper pathEscaper = UrlEscapers.urlPathSegmentEscaper();
   private static final Escaper queryParamEscaper = UrlEscapers.urlFormParameterEscaper();
 
+  private final ConfigServiceLocator m_serviceLocator;
+  private final HttpUtil m_httpUtil;
+  private final ConfigUtil m_configUtil;
+  private final RemoteConfigLongPollService remoteConfigLongPollService;
+  private volatile AtomicReference<ApolloConfig> m_configCache;
+  private final String m_namespace;
+  private final static ScheduledExecutorService m_executorService;
+  private final AtomicReference<ServiceDTO> m_longPollServiceDto;
+  private final AtomicReference<ApolloNotificationMessages> m_remoteMessages;
+  private final RateLimiter m_loadConfigRateLimiter;
+  private final AtomicBoolean m_configNeedForceRefresh;
+  private final SchedulePolicy m_loadConfigFailSchedulePolicy;
+  private final Gson gson;
+
   static {
-    m_executorService = Executors.newScheduledThreadPool(1,
-        ApolloThreadFactory.create("RemoteConfigRepository", true));
+    m_executorService = Executors.newScheduledThreadPool(1, ApolloThreadFactory.create("RemoteConfigRepository", true));
   }
 
   /**
@@ -98,23 +112,26 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
 
   @Override
   public void setUpstreamRepository(ConfigRepository upstreamConfigRepository) {
-    //remote config doesn't need upstream
+    // remote config doesn't need upstream
+  }
+
+  @Override
+  public ConfigSourceType getSourceType() {
+    return ConfigSourceType.REMOTE;
   }
 
   private void schedulePeriodicRefresh() {
-    logger.debug("Schedule periodic refresh with interval: {} {}",
-        m_configUtil.getRefreshInterval(), m_configUtil.getRefreshIntervalTimeUnit());
-    m_executorService.scheduleAtFixedRate(
-        new Runnable() {
-          @Override
-          public void run() {
-            Tracer.logEvent("Apollo.ConfigService", String.format("periodicRefresh: %s", m_namespace));
-            logger.debug("refresh config for namespace: {}", m_namespace);
-            trySync();
-            Tracer.logEvent("Apollo.Client.Version", Apollo.VERSION);
-          }
-        }, m_configUtil.getRefreshInterval(), m_configUtil.getRefreshInterval(),
+    logger.debug("Schedule periodic refresh with interval: {} {}", m_configUtil.getRefreshInterval(),
         m_configUtil.getRefreshIntervalTimeUnit());
+    m_executorService.scheduleAtFixedRate(new Runnable() {
+      @Override
+      public void run() {
+        Tracer.logEvent("Apollo.ConfigService", String.format("periodicRefresh: %s", m_namespace));
+        logger.debug("refresh config for namespace: {}", m_namespace);
+        trySync();
+        Tracer.logEvent("Apollo.Client.Version", Apollo.VERSION);
+      }
+    }, m_configUtil.getRefreshInterval(), m_configUtil.getRefreshInterval(), m_configUtil.getRefreshIntervalTimeUnit());
   }
 
   @Override
@@ -125,7 +142,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
       ApolloConfig previous = m_configCache.get();
       ApolloConfig current = loadApolloConfig();
 
-      //reference equals means HTTP 304
+      // reference equals means HTTP 304
       if (previous != current) {
         logger.debug("Remote Config refreshed!");
         m_configCache.set(current);
@@ -133,8 +150,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
       }
 
       if (current != null) {
-        Tracer.logEvent(String.format("Apollo.Client.Configs.%s", current.getNamespaceName()),
-            current.getReleaseKey());
+        Tracer.logEvent(String.format("Apollo.Client.Configs.%s", current.getNamespaceName()), current.getReleaseKey());
       }
 
       transaction.setStatus(Transaction.SUCCESS);
@@ -147,43 +163,46 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
   }
 
   /**
-   * <p> 将获得的配置文件转换成properties输出，这里对加密字段做解密处理 </p>
+   * <p>
+   * 将获得的配置文件转换成properties输出，这里对加密字段做解密处理
+   * </p>
+   * 
    * @param apolloConfig
    * @return Properties
    * @author 文远（wenyuan@maihaoche.com）
-   * @date 2018/9/28 上午10:55 
+   * @date 2018/9/28 上午10:55
    * @since V1.1.0-SNAPSHOT
    * 
    */
   private Properties transformApolloConfigToProperties(ApolloConfig apolloConfig) {
     Properties result = new Properties();
     result.putAll(apolloConfig.getConfigurations());
-//    ApolloConfig subApolloConfig = null;
-//    try {
-//      subApolloConfig = apolloConfig.clone();
-//    } catch (CloneNotSupportedException e) {
-//      logger.error("apolloConfig clone error:" + e);
-//    }
-//    Map<String, String> configMap = subApolloConfig.getConfigurations();
-//    for (String key : configMap.keySet()) {
-//      String val = configMap.get(key);
-//      if (!StringUtils.isEmpty(val) && val.contains(PASSWORDPRE)) {
-//        String passwordHexString = val.replace(PASSWORDPRE, "");
-//        try {
-//          val = new String(AESUtil.decryptAES(passwordHexString));
-//          configMap.put(key, val);
-//        } catch (Exception e) {
-//          logger.error("解密字符串失败:" + e);
-//        }
-//      }
-//    }
-//    result.putAll(subApolloConfig.getConfigurations());
+    // ApolloConfig subApolloConfig = null;
+    // try {
+    // subApolloConfig = apolloConfig.clone();
+    // } catch (CloneNotSupportedException e) {
+    // logger.error("apolloConfig clone error:" + e);
+    // }
+    // Map<String, String> configMap = subApolloConfig.getConfigurations();
+    // for (String key : configMap.keySet()) {
+    // String val = configMap.get(key);
+    // if (!StringUtils.isEmpty(val) && val.contains(PASSWORDPRE)) {
+    // String passwordHexString = val.replace(PASSWORDPRE, "");
+    // try {
+    // val = new String(AESUtil.decryptAES(passwordHexString));
+    // configMap.put(key, val);
+    // } catch (Exception e) {
+    // logger.error("解密字符串失败:" + e);
+    // }
+    // }
+    // }
+    // result.putAll(subApolloConfig.getConfigurations());
     return result;
   }
 
   private ApolloConfig loadApolloConfig() {
     if (!m_loadConfigRateLimiter.tryAcquire(5, TimeUnit.SECONDS)) {
-      //wait at most 5 seconds
+      // wait at most 5 seconds
       try {
         TimeUnit.SECONDS.sleep(5);
       } catch (InterruptedException e) {
@@ -202,26 +221,25 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     for (int i = 0; i < maxRetries; i++) {
       List<ServiceDTO> randomConfigServices = Lists.newLinkedList(configServices);
       Collections.shuffle(randomConfigServices);
-      //Access the server which notifies the client first
+      // Access the server which notifies the client first
       if (m_longPollServiceDto.get() != null) {
         randomConfigServices.add(0, m_longPollServiceDto.getAndSet(null));
       }
 
       for (ServiceDTO configService : randomConfigServices) {
         if (onErrorSleepTime > 0) {
-          logger.warn(
-              "Load config failed, will retry in {} {}. appId: {}, cluster: {}, namespaces: {}",
+          logger.warn("Load config failed, will retry in {} {}. appId: {}, cluster: {}, namespaces: {}",
               onErrorSleepTime, m_configUtil.getOnErrorRetryIntervalTimeUnit(), appId, cluster, m_namespace);
 
           try {
             m_configUtil.getOnErrorRetryIntervalTimeUnit().sleep(onErrorSleepTime);
           } catch (InterruptedException e) {
-            //ignore
+            // ignore
           }
         }
 
-        url = assembleQueryConfigUrl(configService.getHomepageUrl(), appId, cluster, m_namespace,
-                dataCenter, m_remoteMessages.get(), m_configCache.get());
+        url = assembleQueryConfigUrl(configService.getHomepageUrl(), appId, cluster, m_namespace, dataCenter,
+            m_remoteMessages.get(), m_configCache.get());
 
         logger.info("Loading config from {}", url);
         HttpRequest request = new HttpRequest(url);
@@ -249,14 +267,12 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
           return result;
         } catch (ApolloConfigStatusCodeException ex) {
           ApolloConfigStatusCodeException statusCodeException = ex;
-          //config not found
+          // config not found
           if (ex.getStatusCode() == 404) {
-            String message = String.format(
-                "Could not find config for namespace - appId: %s, cluster: %s, namespace: %s, " +
-                    "please check whether the configs are released in Apollo!",
-                appId, cluster, m_namespace);
-            statusCodeException = new ApolloConfigStatusCodeException(ex.getStatusCode(),
-                message);
+            String message = String
+                .format("Could not find config for namespace - appId: %s, cluster: %s, namespace: %s, "
+                    + "please check whether the configs are released in Apollo!", appId, cluster, m_namespace);
+            statusCodeException = new ApolloConfigStatusCodeException(ex.getStatusCode(), message);
           }
           Tracer.logEvent("ApolloConfigException", ExceptionUtil.getDetailMessage(statusCodeException));
           transaction.setStatus(statusCodeException);
@@ -269,25 +285,24 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
           transaction.complete();
         }
 
-        // if force refresh, do normal sleep, if normal config load, do exponential sleep
-        onErrorSleepTime = m_configNeedForceRefresh.get() ? m_configUtil.getOnErrorRetryInterval() :
-            m_loadConfigFailSchedulePolicy.fail();
+        // if force refresh, do normal sleep, if normal config load, do exponential
+        // sleep
+        onErrorSleepTime = m_configNeedForceRefresh.get() ? m_configUtil.getOnErrorRetryInterval()
+            : m_loadConfigFailSchedulePolicy.fail();
       }
 
     }
-    String message = String.format(
-        "Load Apollo Config failed - appId: %s, cluster: %s, namespace: %s, url: %s",
-        appId, cluster, m_namespace, url);
+    String message = String.format("Load Apollo Config failed - appId: %s, cluster: %s, namespace: %s, url: %s", appId,
+        cluster, m_namespace, url);
     throw new ApolloConfigException(message, exception);
   }
 
-  String assembleQueryConfigUrl(String uri, String appId, String cluster, String namespace,
-                                String dataCenter, ApolloNotificationMessages remoteMessages, ApolloConfig previousConfig) {
+  String assembleQueryConfigUrl(String uri, String appId, String cluster, String namespace, String dataCenter,
+      ApolloNotificationMessages remoteMessages, ApolloConfig previousConfig) {
 
     String path = "configs/%s/%s/%s";
-    List<String> pathParams =
-        Lists.newArrayList(pathEscaper.escape(appId), pathEscaper.escape(cluster),
-            pathEscaper.escape(namespace));
+    List<String> pathParams = Lists.newArrayList(pathEscaper.escape(appId), pathEscaper.escape(cluster),
+        pathEscaper.escape(namespace));
     Map<String, String> queryParams = Maps.newHashMap();
 
     if (previousConfig != null) {
@@ -343,19 +358,18 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     return services;
   }
 
-
   public static void main(String[] args) throws Exception {
-//    String pwd = "{apollo}3da73386e4e0827f771c205a2e70d0f0";
-//    System.out.println(pwd.contains(PASSWORDPRE));
-//    String password = pwd.replace(PASSWORDPRE, "");
-//    System.out.println(password);
-//    System.out.println(new String(AESUtil.decryptAES(password)));
+    // String pwd = "{apollo}3da73386e4e0827f771c205a2e70d0f0";
+    // System.out.println(pwd.contains(PASSWORDPRE));
+    // String password = pwd.replace(PASSWORDPRE, "");
+    // System.out.println(password);
+    // System.out.println(new String(AESUtil.decryptAES(password)));
 
     Map<String, String> configurations = new HashMap<>();
     configurations.put("a", "a");
     ApolloConfig apolloConfig = new ApolloConfig();
     apolloConfig.setConfigurations(configurations);
 
-//    transformApolloConfigToProperties(apolloConfig);
+    // transformApolloConfigToProperties(apolloConfig);
   }
 }

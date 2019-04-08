@@ -1,5 +1,7 @@
 package com.ctrip.framework.apollo.internals;
 
+import com.ctrip.framework.apollo.ConfigChangeListener;
+import com.ctrip.framework.apollo.enums.ConfigSourceType;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
@@ -26,10 +28,12 @@ import com.google.common.collect.Lists;
 public abstract class AbstractConfigFile implements ConfigFile, RepositoryChangeListener {
   private static final Logger logger = LoggerFactory.getLogger(AbstractConfigFile.class);
   private static ExecutorService m_executorService;
-  protected ConfigRepository m_configRepository;
-  protected String m_namespace;
-  protected AtomicReference<Properties> m_configProperties;
-  private List<ConfigFileChangeListener> m_listeners = Lists.newCopyOnWriteArrayList();
+  protected final ConfigRepository m_configRepository;
+  protected final String m_namespace;
+  protected final AtomicReference<Properties> m_configProperties;
+  private final List<ConfigFileChangeListener> m_listeners = Lists.newCopyOnWriteArrayList();
+
+  private volatile ConfigSourceType m_sourceType = ConfigSourceType.NONE;
 
   static {
     m_executorService = Executors.newCachedThreadPool(ApolloThreadFactory
@@ -47,6 +51,7 @@ public abstract class AbstractConfigFile implements ConfigFile, RepositoryChange
     try {
       Properties properties = m_configRepository.getConfig();
       m_configProperties.set(PropertiesUtil.descyptProperties(properties));
+      m_sourceType = m_configRepository.getSourceType();
     } catch (Throwable ex) {
       Tracer.logError(ex);
       logger.warn("Init Apollo Config File failed - namespace: {}, reason: {}.",
@@ -76,6 +81,7 @@ public abstract class AbstractConfigFile implements ConfigFile, RepositoryChange
     String oldValue = getContent();
 
     update(newProperties);
+    m_sourceType = m_configRepository.getSourceType();
 
     String newValue = getContent();
 
@@ -97,6 +103,16 @@ public abstract class AbstractConfigFile implements ConfigFile, RepositoryChange
     if (!m_listeners.contains(listener)) {
       m_listeners.add(listener);
     }
+  }
+
+  @Override
+  public boolean removeChangeListener(ConfigChangeListener listener) {
+    return m_listeners.remove(listener);
+  }
+
+  @Override
+  public ConfigSourceType getSourceType() {
+    return m_sourceType;
   }
 
   private void fireConfigChange(final ConfigFileChangeEvent changeEvent) {

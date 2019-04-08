@@ -5,7 +5,7 @@
 
 	<groupId>com.ctrip.framework.apollo</groupId>
 	<artifactId>apollo</artifactId>
-	<version>1.1.1-SNAPSHOT</version>
+	<version>1.4.0-SNAPSHOT</version>
 	<name>Apollo</name>
 	<packaging>pom</packaging>
 	<description>Ctrip Configuration Center</description>
@@ -75,8 +75,12 @@
 	<properties>
 		<java.version>1.8</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<spring-boot.version>1.3.8.RELEASE</spring-boot.version>
-		<spring-cloud.version>1.2.3.RELEASE</spring-cloud.version>
+		<platform-bom.version>Cairo-SR4</platform-bom.version>
+		<spring-boot.version>2.0.5.RELEASE</spring-boot.version>
+		<spring-cloud.version>Finchley.SR1</spring-cloud.version>
+        <jaxb.version>2.3.0</jaxb.version>
+        <javax.activation.version>1.1.1</javax.activation.version>
+        <javassist.version>3.23.1-GA</javassist.version>
 		<!-- Plugins Version -->
 		<maven-compiler-plugin.version>3.6.0</maven-compiler-plugin.version>
 		<maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
@@ -104,6 +108,15 @@
 		<!--<module>apollo-assembly</module>-->
 		<!--<module>apollo-demo</module>-->
 		<!--<module>apollo-mockserver</module>-->
+		<module>apollo-common</module>
+		<module>apollo-biz</module>
+		<module>apollo-configservice</module>
+		<module>apollo-adminservice</module>
+		<module>apollo-portal</module>
+		<module>apollo-assembly</module>
+		<module>apollo-demo</module>
+		<module>apollo-mockserver</module>
+		<module>apollo-openapi</module>
 	</modules>
 
 	<dependencyManagement>
@@ -146,6 +159,11 @@
 			<dependency>
 				<groupId>com.ctrip.framework.apollo</groupId>
 				<artifactId>apollo-portal</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ctrip.framework.apollo</groupId>
+				<artifactId>apollo-openapi</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<!-- ctrip internal dependencies, only used when ctrip profiles are enabled -->
@@ -285,14 +303,14 @@
 			<dependency>
 				<groupId>io.spring.platform</groupId>
 				<artifactId>platform-bom</artifactId>
-				<version>2.0.8.RELEASE</version>
+				<version>${platform-bom.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
-				<artifactId>spring-cloud-netflix</artifactId>
-				<version>1.2.3.RELEASE</version>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -309,6 +327,34 @@
 					</exclusion>
 				</exclusions>
 			</dependency>
+			<!-- JDK 1.8+ -->
+			<dependency>
+				<groupId>javax.xml.bind</groupId>
+				<artifactId>jaxb-api</artifactId>
+				<version>${jaxb.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.sun.xml.bind</groupId>
+				<artifactId>jaxb-impl</artifactId>
+				<version>${jaxb.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.glassfish.jaxb</groupId>
+				<artifactId>jaxb-runtime</artifactId>
+				<version>${jaxb.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax.activation</groupId>
+				<artifactId>activation</artifactId>
+				<version>${javax.activation.version}</version>
+			</dependency>
+            <!-- JDK 11+ -->
+            <dependency>
+                <groupId>org.javassist</groupId>
+                <artifactId>javassist</artifactId>
+                <version>${javassist.version}</version>
+            </dependency>
+            <!-- end of JDK 11+ -->
 		</dependencies>
 	</dependencyManagement>
 
@@ -317,6 +363,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-boot-starter</artifactId>
+					<groupId>org.springframework.boot</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 	</dependencies>
 
@@ -594,7 +646,7 @@
 					<plugin>
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.7.6.201602180812</version>
+						<version>0.8.3</version>
 						<executions>
 							<execution>
 								<id>prepare-agent</id>
@@ -649,7 +701,7 @@
 					<!-- eureka -->
 					<dependency>
 						<groupId>org.springframework.cloud</groupId>
-						<artifactId>spring-cloud-starter-eureka</artifactId>
+						<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 						<version>${spring-cloud.version}</version>
 						<exclusions>
 							<!-- already in java -->
@@ -755,7 +807,7 @@
 					<!-- eureka -->
 					<dependency>
 						<groupId>org.springframework.cloud</groupId>
-						<artifactId>spring-cloud-starter-eureka</artifactId>
+						<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 						<version>${spring-cloud.version}</version>
 						<exclusions>
 							<!-- already in java -->
@@ -843,6 +895,52 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>configdb</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.flywaydb</groupId>
+						<artifactId>flyway-maven-plugin</artifactId>
+						<version>5.2.4</version>
+						<dependencies>
+							<dependency>
+								<groupId>mysql</groupId>
+								<artifactId>mysql-connector-java</artifactId>
+								<version>5.1.46</version>
+							</dependency>
+						</dependencies>
+						<configuration>
+							<configFile>scripts/db/migration/flyway-configdb.properties</configFile>
+						</configuration>
+						<inherited>false</inherited>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>portaldb</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.flywaydb</groupId>
+						<artifactId>flyway-maven-plugin</artifactId>
+						<version>5.2.4</version>
+						<dependencies>
+							<dependency>
+								<groupId>mysql</groupId>
+								<artifactId>mysql-connector-java</artifactId>
+								<version>5.1.46</version>
+							</dependency>
+						</dependencies>
+						<configuration>
+							<configFile>scripts/db/migration/flyway-portaldb.properties</configFile>
+						</configuration>
+						<inherited>false</inherited>
 					</plugin>
 				</plugins>
 			</build>

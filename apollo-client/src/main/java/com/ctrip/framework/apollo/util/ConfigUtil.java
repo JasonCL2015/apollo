@@ -1,5 +1,12 @@
 package com.ctrip.framework.apollo.util;
 
+import com.google.common.util.concurrent.RateLimiter;
+import java.io.File;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ctrip.framework.apollo.core.ConfigConsts;
 import com.ctrip.framework.apollo.core.MetaDomainConsts;
 import com.ctrip.framework.apollo.core.enums.Env;
@@ -18,22 +25,24 @@ public class ConfigUtil {
   private static final Logger logger = LoggerFactory.getLogger(ConfigUtil.class);
   private int refreshInterval = 5;
   private TimeUnit refreshIntervalTimeUnit = TimeUnit.MINUTES;
-  private int connectTimeout = 1000; //1 second
-  private int readTimeout = 5000; //5 seconds
+  private int connectTimeout = 1000; // 1 second
+  private int readTimeout = 5000; // 5 seconds
   private String cluster;
-  private int loadConfigQPS = 2; //2 times per second
-  private int longPollQPS = 2; //2 times per second
-  //for on error retry
-  private long onErrorRetryInterval = 1;//1 second
-  private TimeUnit onErrorRetryIntervalTimeUnit = TimeUnit.SECONDS;//1 second
-  //for typed config cache of parser result, e.g. integer, double, long, etc.
-  private long maxConfigCacheSize = 500;//500 cache key
-  private long configCacheExpireTime = 1;//1 minute
-  private TimeUnit configCacheExpireTimeUnit = TimeUnit.MINUTES;//1 minute
-  private long longPollingInitialDelayInMills = 2000;//2 seconds
+  private int loadConfigQPS = 2; // 2 times per second
+  private int longPollQPS = 2; // 2 times per second
+  // for on error retry
+  private long onErrorRetryInterval = 1;// 1 second
+  private TimeUnit onErrorRetryIntervalTimeUnit = TimeUnit.SECONDS;// 1 second
+  // for typed config cache of parser result, e.g. integer, double, long, etc.
+  private long maxConfigCacheSize = 500;// 500 cache key
+  private long configCacheExpireTime = 1;// 1 minute
+  private TimeUnit configCacheExpireTimeUnit = TimeUnit.MINUTES;// 1 minute
+  private long longPollingInitialDelayInMills = 2000;// 2 seconds
   private boolean autoUpdateInjectedSpringProperties = true;
+  private final RateLimiter warnLogRateLimiter;
 
   public ConfigUtil() {
+    warnLogRateLimiter = RateLimiter.create(0.017); // 1 warning log output per minute
     initRefreshInterval();
     initConnectTimeout();
     initReadTimeout();
@@ -47,14 +56,17 @@ public class ConfigUtil {
   /**
    * Get the app id for the current application.
    *
-   * @return the app id or ConfigConsts.NO_APPID_PLACEHOLDER if app id is not available
+   * @return the app id or ConfigConsts.NO_APPID_PLACEHOLDER if app id is not
+   *         available
    */
   public String getAppId() {
     String appId = Foundation.app().getAppId();
     if (Strings.isNullOrEmpty(appId)) {
       appId = ConfigConsts.NO_APPID_PLACEHOLDER;
-      logger.warn("app.id is not set, please make sure it is set in classpath:/META-INF/app.properties, now apollo " +
-          "will only load public namespace configurations!");
+      if (warnLogRateLimiter.tryAcquire()) {
+        logger.warn(
+            "app.id is not set, please make sure it is set in classpath:/META-INF/app.properties, now apollo will only load public namespace configurations!");
+      }
     }
     return appId;
   }
@@ -69,15 +81,15 @@ public class ConfigUtil {
   }
 
   private void initCluster() {
-    //Load data center from system property
+    // Load data center from system property
     cluster = System.getProperty(ConfigConsts.APOLLO_CLUSTER_KEY);
 
-    //Use data center as cluster
+    // Use data center as cluster
     if (Strings.isNullOrEmpty(cluster)) {
       cluster = getDataCenter();
     }
 
-    //Use default cluster
+    // Use default cluster
     if (Strings.isNullOrEmpty(cluster)) {
       cluster = ConfigConsts.CLUSTER_NAME_DEFAULT;
     }
@@ -198,14 +210,14 @@ public class ConfigUtil {
     String cacheRoot = getCustomizedCacheRoot();
 
     if (!Strings.isNullOrEmpty(cacheRoot)) {
-//      return cacheRoot + File.separator + getAppId();
+      // return cacheRoot + File.separator + getAppId();
       return cacheRoot;
     }
 
-//    cacheRoot = isOSWindows() ? "C:\\opt\\data\\%s" : "/home/admin/%s";
+    // cacheRoot = isOSWindows() ? "C:\\opt\\data\\%s" : "/home/admin/%s";
     cacheRoot = isOSWindows() ? "C:\\opt\\data\\%s" : "/home/admin/";
     return cacheRoot;
-//    return String.format(cacheRoot, getAppId());
+    // return String.format(cacheRoot, getAppId());
   }
 
   private String getCustomizedCacheRoot() {
@@ -227,7 +239,7 @@ public class ConfigUtil {
     try {
       return Env.DEV == getApolloEnv();
     } catch (Throwable ex) {
-      //ignore
+      // ignore
     }
     return false;
   }
@@ -269,7 +281,8 @@ public class ConfigUtil {
       try {
         longPollingInitialDelayInMills = Long.valueOf(customizedLongPollingInitialDelay);
       } catch (Throwable ex) {
-        logger.error("Config for apollo.longPollingInitialDelayInMills is invalid: {}", customizedLongPollingInitialDelay);
+        logger.error("Config for apollo.longPollingInitialDelayInMills is invalid: {}",
+            customizedLongPollingInitialDelay);
       }
     }
   }
