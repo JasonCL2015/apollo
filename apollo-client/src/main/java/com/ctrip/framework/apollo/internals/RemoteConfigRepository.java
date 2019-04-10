@@ -1,5 +1,6 @@
 package com.ctrip.framework.apollo.internals;
 
+import com.ctrip.framework.apollo.core.dto.AcuraDTO;
 import com.ctrip.framework.apollo.enums.ConfigSourceType;
 import java.util.Collections;
 import java.util.List;
@@ -11,6 +12,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.ctrip.framework.apollo.openapi.client.ApolloOpenApiClient;
+import com.ctrip.framework.apollo.openapi.dto.OpenAppNamespaceDTO;
+import com.ctrip.framework.apollo.openapi.dto.OpenItemDTO;
+import com.ctrip.framework.apollo.openapi.dto.OpenNamespaceDTO;
+import com.google.gson.reflect.TypeToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +48,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -210,6 +217,9 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     }
     String appId = m_configUtil.getAppId();
     String cluster = m_configUtil.getCluster();
+//    m_configUtil.getK8sNamespace()
+
+
     String dataCenter = m_configUtil.getDataCenter();
     Tracer.logEvent("Apollo.Client.ConfigMeta", STRING_JOINER.join(appId, cluster, m_namespace));
     int maxRetries = m_configNeedForceRefresh.get() ? 2 : 1;
@@ -236,6 +246,84 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
           } catch (InterruptedException e) {
             // ignore
           }
+        }
+        /**
+         * 1,判断m_configUtil.getK8sNamespace()是否为空，如果为空，不改变原有逻辑，如果不为空，则进行下一步
+         * 2,根据appId和k8s_namespace获取配置，如果配置不存在，则用appId和k8s_default进行获取配置模板，
+         * 3,处理k8s_default中的配置项占位符，进行保存至新的apollo cluster,命名为k8s_namespace
+         */
+        if (!Strings.isNullOrEmpty(m_configUtil.getK8sNamespace())) {
+          ApolloOpenApiClient client = ApolloOpenApiClient.newBuilder()
+                  .withPortalUrl(ConfigConsts.PORTAL_URL)
+                  .withToken(ConfigConsts.API_TOKEN)
+                  .build();
+          OpenNamespaceDTO openNamespaceDTO = client.getNamespace(appId, m_configUtil.getApolloEnv().name(),
+                  ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace(),
+                  ConfigConsts.NAMESPACE_APPLICATION);
+          if (openNamespaceDTO != null) {
+            //加载配置内容,返回apolloConfig
+            ApolloConfig apolloConfig = new ApolloConfig(openNamespaceDTO.getAppId(),
+                    openNamespaceDTO.getClusterName(),openNamespaceDTO.getNamespaceName(), null);
+            if (!CollectionUtils.isEmpty(openNamespaceDTO.getItems())) {
+              Map<String, String> itemMap = new HashMap<>(openNamespaceDTO.getItems().size());
+              for (int j = 0; j < openNamespaceDTO.getItems().size(); j++) {
+                OpenItemDTO itemDTO = openNamespaceDTO.getItems().get(j);
+                itemMap.put(itemDTO.getKey(), itemDTO.getValue());
+              }
+              apolloConfig.setConfigurations(itemMap);
+            }
+            m_configNeedForceRefresh.set(false);
+            m_loadConfigFailSchedulePolicy.success();
+            return apolloConfig;
+          } else {
+            //获取k8s_default模板
+            OpenNamespaceDTO openNamespaceDefault = client.getNamespace(appId, m_configUtil.getApolloEnv().name(),
+                    ConfigConsts.K8S_NAMESPACE_DEFAULT,
+                    ConfigConsts.NAMESPACE_APPLICATION);
+            if (openNamespaceDefault == null) {
+              String message = String.format("Load Apollo Config failed - appId: %s, cluster: %s, namespace: %s, url: %s", appId,
+                      cluster, m_namespace, url);
+              throw new ApolloConfigException(message, exception);
+            }
+            ApolloConfig apolloConfig = new ApolloConfig(openNamespaceDefault.getAppId(),
+                    ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace(),ConfigConsts.NAMESPACE_APPLICATION, null);
+            Map<String, String> itemMap = new HashMap<>(openNamespaceDefault.getItems().size());
+            AcuraDTO acuraDTO = null;
+            for (int j = 0; j < openNamespaceDefault.getItems().size(); j++) {
+              OpenItemDTO itemDTO = openNamespaceDefault.getItems().get(j);
+              if (itemDTO.getValue().contains(ConfigConsts.PALCEHOLDER_NAMESPACE)) {
+                itemDTO.setValue(itemDTO.getValue().replace(ConfigConsts.PALCEHOLDER_NAMESPACE, m_configUtil.getK8sNamespace()));
+              }
+              if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPID)) {
+                if (acuraDTO == null) {
+                  acuraDTO = getAcuraDTO();
+                  itemDTO.setValue(acuraDTO.getAppId());
+                } else {
+                  itemDTO.setValue(acuraDTO.getAppId());
+                }
+              }
+              if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPKEY)) {
+                if (acuraDTO == null) {
+                  acuraDTO = getAcuraDTO();
+                  itemDTO.setValue(acuraDTO.getAppKey());
+                } else {
+                  itemDTO.setValue(acuraDTO.getAppKey());
+                }
+              }
+              itemMap.put(itemDTO.getKey(), itemDTO.getValue());
+              client.createItem(openNamespaceDefault.getAppId(), m_configUtil.getApolloEnv().name(),
+                      ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace(), ConfigConsts.NAMESPACE_APPLICATION, itemDTO);
+            }
+            apolloConfig.setConfigurations(itemMap);
+            m_configNeedForceRefresh.set(false);
+            m_loadConfigFailSchedulePolicy.success();
+            return apolloConfig;
+//            OpenAppNamespaceDTO openAppNamespaceDTO = new OpenAppNamespaceDTO();
+//            openAppNamespaceDTO.setAppId(openNamespaceDefault.getAppId());
+//            openAppNamespaceDTO.setName(openNamespaceDefault.getNamespaceName());
+//            client.createAppNamespace(openAppNamespaceDTO);
+          }
+
         }
 
         url = assembleQueryConfigUrl(configService.getHomepageUrl(), appId, cluster, m_namespace, dataCenter,
@@ -295,6 +383,14 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     String message = String.format("Load Apollo Config failed - appId: %s, cluster: %s, namespace: %s, url: %s", appId,
         cluster, m_namespace, url);
     throw new ApolloConfigException(message, exception);
+  }
+
+  private AcuraDTO getAcuraDTO() {
+    HttpUtil httpUtil = ApolloInjector.getInstance(HttpUtil.class);
+    HttpRequest request = new HttpRequest("http://lg.haimaiche.com?appName=xx&namespace=xxx");
+    HttpResponse<AcuraDTO> acuraDTOHttpResponse = httpUtil.doGet(request, new TypeToken<AcuraDTO>() {
+    }.getType());
+    return acuraDTOHttpResponse.getBody();
   }
 
   String assembleQueryConfigUrl(String uri, String appId, String cluster, String namespace, String dataCenter,

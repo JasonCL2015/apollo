@@ -28,6 +28,7 @@ public class PropertiesUtil {
      * @author 文远（wenyuan@maihaoche.com）
      * @date 2018/9/29 下午4:15
      * @since V1.1.0-SNAPSHOT
+     * todo 处理配置属性
      *
      */
     public static Properties descyptProperties(Properties properties) {
