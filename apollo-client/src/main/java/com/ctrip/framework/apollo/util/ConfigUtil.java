@@ -109,7 +109,7 @@ public class ConfigUtil {
 
 
   private void initAppName() {
-    k8sNamespace = System.getProperty(ConfigConsts.APP_NAME);
+    appName = System.getProperty(ConfigConsts.APP_NAME);
   }
 
   public String getAppName() {
