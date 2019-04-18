@@ -8,7 +8,7 @@ public interface ConfigConsts {
   String APOLLO_META_KEY = "apollo.meta";
   String CONFIG_FILE_CONTENT_KEY = "content";
   String NO_APPID_PLACEHOLDER = "ApolloNoAppIdPlaceHolder";
-  String APP_NAME = "app.name";
+  String APP_NAME = "k8s.appName";
   String K8S_NAMESPACE = "k8s.namespace";
   String K8S_CLUSTER_DEFAULT = "k8s_default";
   String K8S_NAMESPACE_PRE = "k8s_";

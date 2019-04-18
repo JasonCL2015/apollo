@@ -5,19 +5,10 @@ import com.ctrip.framework.apollo.core.dto.ApolloConfig;
 import com.ctrip.framework.apollo.core.dto.ApolloConfigNotification;
 import com.ctrip.framework.apollo.core.utils.ResourceUtils;
 import com.ctrip.framework.apollo.internals.ConfigServiceLocator;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -25,6 +16,10 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.*;
 
 /**
  * Create by zhangzheng on 8/22/18 Email:zhangzheng@youzan.com

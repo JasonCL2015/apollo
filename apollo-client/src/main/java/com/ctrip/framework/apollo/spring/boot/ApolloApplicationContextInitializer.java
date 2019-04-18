@@ -72,7 +72,7 @@ public class ApolloApplicationContextInitializer
   private static final Logger logger = LoggerFactory.getLogger(ApolloApplicationContextInitializer.class);
   private static final Splitter NAMESPACE_SPLITTER = Splitter.on(",").omitEmptyStrings().trimResults();
   private static final String[] APOLLO_SYSTEM_PROPERTIES = { "app.id", ConfigConsts.APOLLO_CLUSTER_KEY,
-      "apollo.cacheDir", ConfigConsts.APOLLO_META_KEY, ConfigConsts.K8S_NAMESPACE };
+      "apollo.cacheDir", ConfigConsts.APOLLO_META_KEY, ConfigConsts.K8S_NAMESPACE, ConfigConsts.APP_NAME };
 
   private final ConfigPropertySourceFactory configPropertySourceFactory = SpringInjector
       .getInstance(ConfigPropertySourceFactory.class);

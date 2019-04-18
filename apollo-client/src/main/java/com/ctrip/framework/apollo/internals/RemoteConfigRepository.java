@@ -265,7 +265,6 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                         ApolloConfig apolloConfig = new ApolloConfig(appId,
                                 ConfigConsts.K8S_CLUSTER_DEFAULT, ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace(), null);
 
-
                         //创建新的namespace
                         String appNamespaceId = ApolloAPIUtil.createNamespace(m_configUtil.getApolloEnv(), appId,
                                 ConfigConsts.K8S_CLUSTER_DEFAULT,
@@ -287,18 +286,21 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                                 if (itemDTO.getValue().contains(ConfigConsts.PALCEHOLDER_NAMESPACE)) {
                                     itemDTO.setValue(itemDTO.getValue().replace(ConfigConsts.PALCEHOLDER_NAMESPACE,
                                             m_configUtil.getK8sNamespace()));
+                                    continue;
                                 }
                                 if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPID)) {
                                     if (acuraDTO == null) {
                                         acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getId());
+                                    continue;
                                 }
                                 if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPKEY)) {
                                     if (acuraDTO == null) {
                                         acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getKey());
+                                    continue;
                                 }
                                 if (StrUtil.isNotEmpty(itemDTO.getKey())) {
                                     itemMap.put(itemDTO.getKey(), itemDTO.getValue());
@@ -311,12 +313,12 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                                     ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace(), itemChangeSets);
                             ApolloAPIUtil.publish(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
                                     ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
-                        }
 
-                        apolloConfig.setConfigurations(itemMap);
-                        m_configNeedForceRefresh.set(false);
-                        m_loadConfigFailSchedulePolicy.success();
-                        return apolloConfig;
+                            apolloConfig.setConfigurations(itemMap);
+                            m_configNeedForceRefresh.set(false);
+                            m_loadConfigFailSchedulePolicy.success();
+                            return apolloConfig;
+                        }
                     }
                 }
 
@@ -388,6 +390,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
             AcuraDTO acuraDTO = object.get("data", AcuraDTO.class);
             return acuraDTO;
         } else {
+            logger.error("调用讴歌失败:" + object.get("message").toString());
             return new AcuraDTO();
         }
     }
