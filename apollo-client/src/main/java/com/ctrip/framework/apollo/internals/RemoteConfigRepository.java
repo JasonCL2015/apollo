@@ -4,43 +4,24 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.ctrip.framework.apollo.core.dto.*;
-import com.ctrip.framework.apollo.enums.ConfigSourceType;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-//import com.ctrip.framework.apollo.openapi.client.ApolloOpenApiClient;
-//import com.ctrip.framework.apollo.openapi.dto.NamespaceReleaseDTO;
-//import com.ctrip.framework.apollo.openapi.dto.OpenAppNamespaceDTO;
-//import com.ctrip.framework.apollo.openapi.dto.OpenItemDTO;
-//import com.ctrip.framework.apollo.openapi.dto.OpenNamespaceDTO;
-//import com.google.gson.reflect.TypeToken;
-//import org.apache.http.client.utils.DateUtils;
-import com.ctrip.framework.apollo.model.ItemChangeSets;
-import com.ctrip.framework.apollo.model.ItemDTO;
-import com.ctrip.framework.apollo.util.ApolloAPIUtil;
-import com.google.common.reflect.TypeToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.ctrip.framework.apollo.Apollo;
 import com.ctrip.framework.apollo.build.ApolloInjector;
 import com.ctrip.framework.apollo.core.ConfigConsts;
+import com.ctrip.framework.apollo.core.dto.AcuraDTO;
+import com.ctrip.framework.apollo.core.dto.ApolloConfig;
+import com.ctrip.framework.apollo.core.dto.ApolloNotificationMessages;
+import com.ctrip.framework.apollo.core.dto.ServiceDTO;
 import com.ctrip.framework.apollo.core.schedule.ExponentialSchedulePolicy;
 import com.ctrip.framework.apollo.core.schedule.SchedulePolicy;
 import com.ctrip.framework.apollo.core.utils.ApolloThreadFactory;
+import com.ctrip.framework.apollo.enums.ConfigSourceType;
 import com.ctrip.framework.apollo.exceptions.ApolloConfigException;
 import com.ctrip.framework.apollo.exceptions.ApolloConfigStatusCodeException;
+import com.ctrip.framework.apollo.model.ItemChangeSets;
+import com.ctrip.framework.apollo.model.ItemDTO;
 import com.ctrip.framework.apollo.tracer.Tracer;
 import com.ctrip.framework.apollo.tracer.spi.Transaction;
+import com.ctrip.framework.apollo.util.ApolloAPIUtil;
 import com.ctrip.framework.apollo.util.ConfigUtil;
 import com.ctrip.framework.apollo.util.ExceptionUtil;
 import com.ctrip.framework.apollo.util.http.HttpRequest;
@@ -56,7 +37,6 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -64,6 +44,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
+//import com.ctrip.framework.apollo.openapi.client.ApolloOpenApiClient;
+//import com.ctrip.framework.apollo.openapi.dto.NamespaceReleaseDTO;
+//import com.ctrip.framework.apollo.openapi.dto.OpenAppNamespaceDTO;
+//import com.ctrip.framework.apollo.openapi.dto.OpenItemDTO;
+//import com.ctrip.framework.apollo.openapi.dto.OpenNamespaceDTO;
+//import com.google.gson.reflect.TypeToken;
+//import org.apache.http.client.utils.DateUtils;
 
 /**
  * @author Jason Song(song_s@ctrip.com)
@@ -191,26 +179,6 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     private Properties transformApolloConfigToProperties(ApolloConfig apolloConfig) {
         Properties result = new Properties();
         result.putAll(apolloConfig.getConfigurations());
-        // ApolloConfig subApolloConfig = null;
-        // try {
-        // subApolloConfig = apolloConfig.clone();
-        // } catch (CloneNotSupportedException e) {
-        // logger.error("apolloConfig clone error:" + e);
-        // }
-        // Map<String, String> configMap = subApolloConfig.getConfigurations();
-        // for (String key : configMap.keySet()) {
-        // String val = configMap.get(key);
-        // if (!StringUtils.isEmpty(val) && val.contains(PASSWORDPRE)) {
-        // String passwordHexString = val.replace(PASSWORDPRE, "");
-        // try {
-        // val = new String(AESUtil.decryptAES(passwordHexString));
-        // configMap.put(key, val);
-        // } catch (Exception e) {
-        // logger.error("解密字符串失败:" + e);
-        // }
-        // }
-        // }
-        // result.putAll(subApolloConfig.getConfigurations());
         return result;
     }
 
@@ -260,8 +228,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                 if (!Strings.isNullOrEmpty(m_configUtil.getK8sNamespace())) {
                     List<ItemDTO> itemDTOList = null;
                     try {
-
-                        itemDTOList = ApolloAPIUtil.getItems(appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
+                        itemDTOList = ApolloAPIUtil.getItems(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
                                 ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
                     } catch (Exception e) {
                         logger.error(e.toString());
@@ -283,7 +250,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                     } else {
                         //获取k8s_default中namespace=application的模板
                         try {
-                            itemDTOList = ApolloAPIUtil.getItems(appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
+                            itemDTOList = ApolloAPIUtil.getItems(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
                                     ConfigConsts.NAMESPACE_APPLICATION);
                         } catch (Exception e) {
                             logger.error(e.toString());
@@ -300,13 +267,18 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
 
 
                         //创建新的namespace
-                        String namespaceId = ApolloAPIUtil.createNamespace(appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
+                        String appNamespaceId = ApolloAPIUtil.createNamespace(m_configUtil.getApolloEnv(), appId,
+                                ConfigConsts.K8S_CLUSTER_DEFAULT,
                                 ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
 
-                        Map<String, String> itemMap = new HashMap<>(itemDTOList.size());
+                        Map<String, String> itemMap = new HashMap<>();
 
-                        if (namespaceId != null) {
+                        String namespaceId = ApolloAPIUtil.getNamespaceIdByParam(m_configUtil.getApolloEnv(), appId,
+                                ConfigConsts.K8S_CLUSTER_DEFAULT,
+                                ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
+                        if (appNamespaceId != null && namespaceId != null) {
                             ItemChangeSets itemChangeSets = new ItemChangeSets();
+                            List<ItemDTO> createItems = new ArrayList<>();
                             itemChangeSets.setDataChangeLastModifiedBy("wenyuan");
 
                             AcuraDTO acuraDTO = null;
@@ -318,23 +290,26 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                                 }
                                 if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPID)) {
                                     if (acuraDTO == null) {
-                                        acuraDTO = getAcuraDTO();
+                                        acuraDTO = getAcuraDTO(m_configUtil.getK8sNamespace(), m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getId());
                                 }
                                 if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPKEY)) {
                                     if (acuraDTO == null) {
-                                        acuraDTO = getAcuraDTO();
+                                        acuraDTO = getAcuraDTO(m_configUtil.getK8sNamespace(), m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getKey());
                                 }
-                                itemMap.put(itemDTO.getKey(), itemDTO.getValue());
-                                itemDTO.setNamespaceId(Long.valueOf(namespaceId));
+                                if (StrUtil.isNotEmpty(itemDTO.getKey())) {
+                                    itemMap.put(itemDTO.getKey(), itemDTO.getValue());
+                                    itemDTO.setNamespaceId(Long.valueOf(namespaceId));
+                                    createItems.add(itemDTO);
+                                }
                             }
-                            itemChangeSets.setCreateItems(itemDTOList);
-                            ApolloAPIUtil.createItems(appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
+                            itemChangeSets.setCreateItems(createItems);
+                            ApolloAPIUtil.createItems(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
                                     ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace(), itemChangeSets);
-                            ApolloAPIUtil.publish(appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
+                            ApolloAPIUtil.publish(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
                                     ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
                         }
 
@@ -405,8 +380,8 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     }
 
 
-    private static AcuraDTO getAcuraDTO() {
-        String result = cn.hutool.http.HttpUtil.get("http://lg.haimaiche.net/app/create.json?appName=malibu&namespace=k8s_wenyuan");
+    private static AcuraDTO getAcuraDTO(String appName, String namespaceName) {
+        String result = cn.hutool.http.HttpUtil.get("http://lg.haimaiche.net/app/create.json?appName="+ appName +"&namespace="+ namespaceName);
         JSONObject object = JSONUtil.parseObj(result);
         if (StrUtil.equals(object.get("code").toString(), "200")) {
             AcuraDTO acuraDTO = object.get("data", AcuraDTO.class);
@@ -493,9 +468,9 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
 
 //        APIResult<AcuraDTO> apiResult = getAcuraDTO();
 
-        String result = cn.hutool.http.HttpUtil.get("http://lg.haimaiche.net/app/create.json?appName=malibu&namespace=k8s_wenyuan");
-        JSONObject object = JSONUtil.parseObj(result);
-        AcuraDTO acuraDTO = object.get("data", AcuraDTO.class);
-        System.out.println(acuraDTO.toString());
+//        String result = cn.hutool.http.HttpUtil.get("http://lg.haimaiche.net/app/create.json?appName=malibu&namespace=k8s_wenyuan");
+//        JSONObject object = JSONUtil.parseObj(result);
+//        AcuraDTO acuraDTO = object.get("data", AcuraDTO.class);
+//        System.out.println(acuraDTO.toString());
     }
 }
