@@ -28,6 +28,7 @@ public class ConfigUtil {
   private int connectTimeout = 1000; // 1 second
   private int readTimeout = 5000; // 5 seconds
   private String cluster;
+  private String appName;
   private String k8sNamespace;
   private int loadConfigQPS = 2; // 2 times per second
   private int longPollQPS = 2; // 2 times per second
@@ -49,6 +50,7 @@ public class ConfigUtil {
     initReadTimeout();
     initCluster();
     initK8sNamespace();
+    initAppName();
     initQPS();
     initMaxConfigCacheSize();
     initLongPollingInitialDelayInMills();
@@ -103,6 +105,15 @@ public class ConfigUtil {
 
   public String getK8sNamespace() {
     return k8sNamespace;
+  }
+
+
+  private void initAppName() {
+    k8sNamespace = System.getProperty(ConfigConsts.APP_NAME);
+  }
+
+  public String getAppName() {
+    return appName;
   }
 
   /**
