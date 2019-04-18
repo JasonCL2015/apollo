@@ -286,6 +286,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                                 if (itemDTO.getValue().contains(ConfigConsts.PALCEHOLDER_NAMESPACE)) {
                                     itemDTO.setValue(itemDTO.getValue().replace(ConfigConsts.PALCEHOLDER_NAMESPACE,
                                             m_configUtil.getK8sNamespace()));
+                                    assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
                                     continue;
                                 }
                                 if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPID)) {
@@ -293,6 +294,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                                         acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getId());
+                                    assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
                                     continue;
                                 }
                                 if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPKEY)) {
@@ -300,12 +302,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                                         acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getKey());
-                                    continue;
-                                }
-                                if (StrUtil.isNotEmpty(itemDTO.getKey())) {
-                                    itemMap.put(itemDTO.getKey(), itemDTO.getValue());
-                                    itemDTO.setNamespaceId(Long.valueOf(namespaceId));
-                                    createItems.add(itemDTO);
+                                    assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
                                 }
                             }
                             itemChangeSets.setCreateItems(createItems);
@@ -379,6 +376,14 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
         String message = String.format("Load Apollo Config failed - appId: %s, cluster: %s, namespace: %s, url: %s", appId,
                 cluster, m_namespace, url);
         throw new ApolloConfigException(message, exception);
+    }
+
+    private void assemBlyItemMap(Map<String, String> itemMap, String namespaceId, List<ItemDTO> createItems, ItemDTO itemDTO) {
+        if (StrUtil.isNotEmpty(itemDTO.getKey())) {
+            itemMap.put(itemDTO.getKey(), itemDTO.getValue());
+            itemDTO.setNamespaceId(Long.valueOf(namespaceId));
+            createItems.add(itemDTO);
+        }
     }
 
 
