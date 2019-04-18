@@ -3,4 +3,4 @@ spring:
     active: ${apollo_profile}
 
 logging:
-  file: /opt/logs/100003171/apollo-assembly.log
+  file: ${HOME}/logs/100003171/apollo-assembly.log

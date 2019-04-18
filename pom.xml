@@ -97,26 +97,18 @@
 	</properties>
 
 	<modules>
-		<!--<module>apollo-buildtools</module>-->
+		<module>apollo-buildtools</module>
 		<module>apollo-core</module>
 		<module>apollo-client</module>
-		<!--<module>apollo-common</module>-->
-		<!--<module>apollo-biz</module>-->
-		<!--<module>apollo-configservice</module>-->
-		<!--<module>apollo-adminservice</module>-->
-		<!--<module>apollo-portal</module>-->
-		<!--<module>apollo-assembly</module>-->
+		<module>apollo-common</module>
+		<module>apollo-biz</module>
+		<module>apollo-configservice</module>
+		<module>apollo-adminservice</module>
+		<module>apollo-portal</module>
+		<module>apollo-assembly</module>
 		<!--<module>apollo-demo</module>-->
-		<!--<module>apollo-mockserver</module>-->
-		<!--<module>apollo-common</module>-->
-		<!--<module>apollo-biz</module>-->
-		<!--<module>apollo-configservice</module>-->
-		<!--<module>apollo-adminservice</module>-->
-		<!--<module>apollo-portal</module>-->
-		<!--<module>apollo-assembly</module>-->
-		<!--<module>apollo-demo</module>-->
-		<!--<module>apollo-mockserver</module>-->
-		<!--<module>apollo-openapi</module>-->
+		<module>apollo-mockserver</module>
+		<module>apollo-openapi</module>
 	</modules>
 
 	<dependencyManagement>

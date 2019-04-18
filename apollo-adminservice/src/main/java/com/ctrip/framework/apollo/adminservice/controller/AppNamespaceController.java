@@ -46,7 +46,7 @@ public class AppNamespaceController {
         entity.setFormat(ConfigFileFormat.Properties.getValue());
       }
 
-      entity = appNamespaceService.createAppNamespace(entity);
+      entity = appNamespaceService.createAppNamespace(entity, appNamespace.getClusterName());
     } else if (silentCreation) {
       appNamespaceService.createNamespaceForAppNamespaceInAllCluster(appNamespace.getAppId(), appNamespace.getName(),
           appNamespace.getDataChangeCreatedBy());

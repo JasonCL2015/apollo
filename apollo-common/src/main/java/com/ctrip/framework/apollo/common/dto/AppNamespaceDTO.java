@@ -12,7 +12,17 @@ public class AppNamespaceDTO extends BaseDTO{
 
   private String format;
 
+  private String clusterName;
+
   private boolean isPublic = false;
+
+  public String getClusterName() {
+    return clusterName;
+  }
+
+  public void setClusterName(String clusterName) {
+    this.clusterName = clusterName;
+  }
 
   public long getId() {
     return id;

@@ -11,23 +11,43 @@ package com.ctrip.framework.apollo.core.dto;
  */
 public class AcuraDTO {
 
-    private String appId;
+    private String name;
 
-    private String appKey;
+    private String id;
 
-    public String getAppId() {
-        return appId;
+    private String key;
+
+    private String domain;
+
+    public String getName() {
+        return name;
     }
 
-    public void setAppId(String appId) {
-        this.appId = appId;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public String getAppKey() {
-        return appKey;
+    public String getId() {
+        return id;
     }
 
-    public void setAppKey(String appKey) {
-        this.appKey = appKey;
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getDomain() {
+        return domain;
+    }
+
+    public void setDomain(String domain) {
+        this.domain = domain;
     }
 }

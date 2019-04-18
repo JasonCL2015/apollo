@@ -104,7 +104,7 @@ public class AppNamespaceService {
   }
 
   @Transactional
-  public AppNamespace createAppNamespace(AppNamespace appNamespace) {
+  public AppNamespace createAppNamespace(AppNamespace appNamespace, String clusterName) {
     String createBy = appNamespace.getDataChangeCreatedBy();
     if (!isAppNamespaceNameUnique(appNamespace.getAppId(), appNamespace.getName())) {
       throw new ServiceException("appnamespace not unique");
@@ -114,9 +114,14 @@ public class AppNamespaceService {
     appNamespace.setDataChangeLastModifiedBy(createBy);
 
     appNamespace = appNamespaceRepository.save(appNamespace);
-
-    createNamespaceForAppNamespaceInAllCluster(appNamespace.getAppId(), appNamespace.getName(), createBy);
-
+    System.out.println("=============clusterName:" + clusterName);
+    if (StringUtils.isEmpty(clusterName)) {
+      System.out.println("============create namespace for all cluster");
+      createNamespaceForAppNamespaceInAllCluster(appNamespace.getAppId(), appNamespace.getName(), createBy);
+    } else {
+      System.out.println("============create namespace for one cluster");
+      createNamespaceByCluster(appNamespace.getAppId(), appNamespace.getName(), createBy, clusterName);
+    }
     auditService.audit(AppNamespace.class.getSimpleName(), appNamespace.getId(), Audit.OP.INSERT, createBy);
     return appNamespace;
   }
@@ -151,6 +156,19 @@ public class AppNamespaceService {
 
       namespaceService.save(namespace);
     }
+  }
+
+  private void createNamespaceByCluster(String appId, String namespaceName, String createBy, String clusterName) {
+    if (!namespaceService.isNamespaceUnique(appId, clusterName, namespaceName)) {
+      return;
+    }
+    Namespace namespace = new Namespace();
+    namespace.setClusterName(clusterName);
+    namespace.setAppId(appId);
+    namespace.setNamespaceName(namespaceName);
+    namespace.setDataChangeCreatedBy(createBy);
+    namespace.setDataChangeLastModifiedBy(createBy);
+    namespaceService.save(namespace);
   }
 
   @Transactional

@@ -9,7 +9,7 @@ public interface ConfigConsts {
   String CONFIG_FILE_CONTENT_KEY = "content";
   String NO_APPID_PLACEHOLDER = "ApolloNoAppIdPlaceHolder";
   String K8S_NAMESPACE = "k8s.namespace";
-  String K8S_NAMESPACE_DEFAULT = "k8s_default";
+  String K8S_CLUSTER_DEFAULT = "k8s_default";
   String K8S_NAMESPACE_PRE = "k8s_";
   long NOTIFICATION_ID_PLACEHOLDER = -1;
 
@@ -20,7 +20,7 @@ public interface ConfigConsts {
   /**
    * apollo API TOKEN
    */
-  String API_TOKEN = "e16e5cd903fd0c97a116c873b448544b9d086de9";
+  String API_TOKEN = "0f71abeeeafe0614c5cc6704a36e559dffa13e9f";
 
   String PALCEHOLDER_NAMESPACE = "{namespace}";
   String PLACEHOLDER_ACURA_APPID = "{acura.app.id}";
