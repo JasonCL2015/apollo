@@ -318,13 +318,13 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                                 }
                                 if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPID)) {
                                     if (acuraDTO == null) {
-                                        acuraDTO = getAcuraDTO();
+                                        acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getId());
                                 }
                                 if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPKEY)) {
                                     if (acuraDTO == null) {
-                                        acuraDTO = getAcuraDTO();
+                                        acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getKey());
                                 }
@@ -405,8 +405,9 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
     }
 
 
-    private static AcuraDTO getAcuraDTO() {
-        String result = cn.hutool.http.HttpUtil.get("http://lg.haimaiche.net/app/create.json?appName=malibu&namespace=k8s_wenyuan");
+    private static AcuraDTO getAcuraDTO(String appName,String namespace) {
+        String aucraUrl = "http://lg.haimaiche.net/app/create.json?appName="+appName+"&namespace="+namespace;
+        String result = cn.hutool.http.HttpUtil.get(aucraUrl);
         JSONObject object = JSONUtil.parseObj(result);
         if (StrUtil.equals(object.get("code").toString(), "200")) {
             AcuraDTO acuraDTO = object.get("data", AcuraDTO.class);
