@@ -279,7 +279,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                             ItemChangeSets itemChangeSets = new ItemChangeSets();
                             List<ItemDTO> createItems = new ArrayList<>();
                             itemChangeSets.setDataChangeLastModifiedBy("apollo");
-
+                            itemChangeSets.setDataChangeCreatedBy("apollo");
                             AcuraDTO acuraDTO = null;
                             for (int j = 0; j < itemDTOList.size(); j++) {
                                 ItemDTO itemDTO = itemDTOList.get(j);
@@ -287,21 +287,19 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                                     itemDTO.setValue(itemDTO.getValue().replace(ConfigConsts.PALCEHOLDER_NAMESPACE,
                                             m_configUtil.getK8sNamespace()));
                                     assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
-                                    continue;
-                                }
-                                if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPID)) {
+                                }else if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPID)) {
                                     if (acuraDTO == null) {
                                         acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getId());
                                     assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
-                                    continue;
-                                }
-                                if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPKEY)) {
+                                }else if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPKEY)) {
                                     if (acuraDTO == null) {
                                         acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
                                     }
                                     itemDTO.setValue(acuraDTO.getKey());
+                                    assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
+                                }else {
                                     assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
                                 }
                             }

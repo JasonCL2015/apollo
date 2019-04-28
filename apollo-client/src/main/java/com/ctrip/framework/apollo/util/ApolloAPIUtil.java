@@ -52,7 +52,7 @@ public class ApolloAPIUtil {
         param.put("clusterName", clusterName);
         param.put("name", namespaceName);
         param.put("comment", "创建namespace接口测试");
-        param.put("dataChangeCreatedBy", "wenyuan");
+        param.put("dataChangeCreatedBy", "apollo");
         String url = adminserviceUrl + "/apps/"+ appId +"/appnamespaces";
         Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
         String result2 = HttpRequest.post(url)
@@ -89,7 +89,7 @@ public class ApolloAPIUtil {
         String adminserviceUrl = getAdminserviceUrl(env);
         Map<String, Object> param = new HashMap<>(2);
         param.put("name", DateUtil.now()+"-auto-relase");
-        param.put("operator", "wenyuan");
+        param.put("operator", "apollo");
         String response = HttpUtil.post(adminserviceUrl + "/apps/"+ appId +"/clusters/"+ clusterName +"/namespaces/"+ namespaceName +"/releases",param);
         System.out.println(response);
     }
