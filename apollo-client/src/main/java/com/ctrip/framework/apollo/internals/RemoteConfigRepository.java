@@ -278,7 +278,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                         if (appNamespaceId != null && namespaceId != null) {
                             ItemChangeSets itemChangeSets = new ItemChangeSets();
                             List<ItemDTO> createItems = new ArrayList<>();
-                            itemChangeSets.setDataChangeLastModifiedBy("wenyuan");
+                            itemChangeSets.setDataChangeLastModifiedBy("apollo");
 
                             AcuraDTO acuraDTO = null;
                             for (int j = 0; j < itemDTOList.size(); j++) {
