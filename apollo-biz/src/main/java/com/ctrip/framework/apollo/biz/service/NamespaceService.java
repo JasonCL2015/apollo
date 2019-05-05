@@ -83,6 +83,11 @@ public class NamespaceService {
     return namespaceRepository.findById(namespaceId).orElse(null);
   }
 
+  public Namespace findOneAll(String appId, String clusterName, String namespaceName) {
+    return namespaceRepository.findAllByAppIdAndClusterNameAndNamespaceName(appId, clusterName,
+            namespaceName);
+  }
+
   public Namespace findOne(String appId, String clusterName, String namespaceName) {
     return namespaceRepository.findByAppIdAndClusterNameAndNamespaceName(appId, clusterName,
                                                                          namespaceName);
@@ -177,6 +182,14 @@ public class NamespaceService {
     }
 
     return namespaceRepository.countByNamespaceNameAndAppIdNot(publicNamespaceName, publicAppNamespace.getAppId());
+  }
+
+  public List<Namespace> findAllNamespaces(String appId, String clusterName) {
+    List<Namespace> namespaces = namespaceRepository.findAllByAppIdAndClusterNameOrderByIdAsc(appId, clusterName);
+    if (namespaces == null) {
+      return Collections.emptyList();
+    }
+    return namespaces;
   }
 
   public List<Namespace> findNamespaces(String appId, String clusterName) {

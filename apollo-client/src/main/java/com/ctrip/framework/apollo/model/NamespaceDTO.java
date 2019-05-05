@@ -1,7 +1,5 @@
-package com.ctrip.framework.apollo.common.dto;
+package com.ctrip.framework.apollo.model;
 
-import com.ctrip.framework.apollo.common.utils.InputValidator;
-import javax.validation.constraints.Pattern;
 
 public class NamespaceDTO extends BaseDTO{
   private long id;
@@ -10,13 +8,9 @@ public class NamespaceDTO extends BaseDTO{
 
   private String clusterName;
 
-  private boolean isDeleted = false;
-
-  @Pattern(
-      regexp = InputValidator.CLUSTER_NAMESPACE_VALIDATOR,
-      message = "Namespace格式错误: " + InputValidator.INVALID_CLUSTER_NAMESPACE_MESSAGE
-  )
   private String namespaceName;
+
+  private boolean isDeleted = false;
 
   public long getId() {
     return id;

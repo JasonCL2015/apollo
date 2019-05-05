@@ -60,6 +60,13 @@ public class NamespaceController {
     return BeanUtils.batchTransform(NamespaceDTO.class, groups);
   }
 
+  @GetMapping("/apps/{appId}/clusters/{clusterName}/namespaces/all")
+  public List<NamespaceDTO> findAll(@PathVariable("appId") String appId,
+                                 @PathVariable("clusterName") String clusterName) {
+    List<Namespace> groups = namespaceService.findAllNamespaces(appId, clusterName);
+    return BeanUtils.batchTransform(NamespaceDTO.class, groups);
+  }
+
   @GetMapping("/namespaces/{namespaceId}")
   public NamespaceDTO get(@PathVariable("namespaceId") Long namespaceId) {
     Namespace namespace = namespaceService.findOne(namespaceId);
@@ -73,6 +80,16 @@ public class NamespaceController {
                           @PathVariable("clusterName") String clusterName,
                           @PathVariable("namespaceName") String namespaceName) {
     Namespace namespace = namespaceService.findOne(appId, clusterName, namespaceName);
+    if (namespace == null) throw new NotFoundException(
+            String.format("namespace not found for %s %s %s", appId, clusterName, namespaceName));
+    return BeanUtils.transform(NamespaceDTO.class, namespace);
+  }
+
+  @GetMapping("/apps/{appId}/clusters/{clusterName}/namespaces/{namespaceName:.+}/all")
+  public NamespaceDTO getAll(@PathVariable("appId") String appId,
+                          @PathVariable("clusterName") String clusterName,
+                          @PathVariable("namespaceName") String namespaceName) {
+    Namespace namespace = namespaceService.findOneAll(appId, clusterName, namespaceName);
     if (namespace == null) throw new NotFoundException(
             String.format("namespace not found for %s %s %s", appId, clusterName, namespaceName));
     return BeanUtils.transform(NamespaceDTO.class, namespace);
