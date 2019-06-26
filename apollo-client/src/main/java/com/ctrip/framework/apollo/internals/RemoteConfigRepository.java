@@ -303,7 +303,9 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                                     }
                                     itemDTO.setValue(acuraDTO.getKey());
                                     assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
+                                    continue;
                                 }
+                                assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
                             }
                             itemChangeSets.setCreateItems(createItems);
                             ApolloAPIUtil.createItems(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
