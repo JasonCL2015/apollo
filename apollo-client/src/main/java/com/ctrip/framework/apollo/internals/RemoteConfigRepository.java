@@ -11,14 +11,17 @@ import com.ctrip.framework.apollo.core.dto.AcuraDTO;
 import com.ctrip.framework.apollo.core.dto.ApolloConfig;
 import com.ctrip.framework.apollo.core.dto.ApolloNotificationMessages;
 import com.ctrip.framework.apollo.core.dto.ServiceDTO;
+import com.ctrip.framework.apollo.core.enums.Env;
 import com.ctrip.framework.apollo.core.schedule.ExponentialSchedulePolicy;
 import com.ctrip.framework.apollo.core.schedule.SchedulePolicy;
 import com.ctrip.framework.apollo.core.utils.ApolloThreadFactory;
 import com.ctrip.framework.apollo.enums.ConfigSourceType;
 import com.ctrip.framework.apollo.exceptions.ApolloConfigException;
 import com.ctrip.framework.apollo.exceptions.ApolloConfigStatusCodeException;
+import com.ctrip.framework.apollo.model.AppNamespaceDTO;
 import com.ctrip.framework.apollo.model.ItemChangeSets;
 import com.ctrip.framework.apollo.model.ItemDTO;
+import com.ctrip.framework.apollo.model.NamespaceDTO;
 import com.ctrip.framework.apollo.tracer.Tracer;
 import com.ctrip.framework.apollo.tracer.spi.Transaction;
 import com.ctrip.framework.apollo.util.ApolloAPIUtil;
@@ -192,6 +195,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
         }
         String appId = m_configUtil.getAppId();
         String cluster = m_configUtil.getCluster();
+        String namespace = m_namespace;
 
         String dataCenter = m_configUtil.getDataCenter();
         Tracer.logEvent("Apollo.Client.ConfigMeta", STRING_JOINER.join(appId, cluster, m_namespace));
@@ -226,17 +230,22 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                  * 3,处理k8s_default中的配置项占位符，进行保存至新的apollo cluster,命名为k8s_namespace
                  */
                 if (!Strings.isNullOrEmpty(m_configUtil.getK8sNamespace())) {
+                    //赋值namespace为特殊的namespace
+                    namespace = ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace();
                     List<ItemDTO> itemDTOList = null;
                     try {
                         itemDTOList = ApolloAPIUtil.getItems(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
-                                ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
-                    } catch (Exception e) {
+                    if (namespaceDTO == null) {
+                        //如果namespace不存在，创建namespace和appNamespace
                         logger.error(e.toString());
-                    }
                     if (CollUtil.isNotEmpty(itemDTOList)) {
                         //加载配置内容,返回apolloConfig
                         ApolloConfig apolloConfig = new ApolloConfig(appId,
                                 ConfigConsts.K8S_CLUSTER_DEFAULT, ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace(), null);
+                        }
+                    } else if (namespaceDTO.isDeleted()) {
+                        //如果namespace是被逻辑删除的
+
 
                         Map<String, String> itemMap = new HashMap<>(itemDTOList.size());
                         for (int j = 0; j < itemDTOList.size(); j++) {
@@ -248,80 +257,52 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                         m_loadConfigFailSchedulePolicy.success();
                         return apolloConfig;
                     } else {
-                        //获取k8s_default中namespace=application的模板
+                        //如果namespace存在
                         try {
                             itemDTOList = ApolloAPIUtil.getItems(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
-                                    ConfigConsts.NAMESPACE_APPLICATION);
+                                    ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
                         } catch (Exception e) {
                             logger.error(e.toString());
                         }
-                        if (CollUtil.isEmpty(itemDTOList)) {
-                            String message = String.format("Load Apollo Config failed - appId: %s, cluster: %s, namespace: %s, url: %s",
-                                    appId,
-                                    cluster, m_namespace, url);
-                            throw new ApolloConfigException(message, exception);
-                        }
+                        //如果ItemList不为空
+                        if (CollUtil.isNotEmpty(itemDTOList)) {
+                            //加载配置内容,执行原有逻辑
 
-                        ApolloConfig apolloConfig = new ApolloConfig(appId,
-                                ConfigConsts.K8S_CLUSTER_DEFAULT, ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace(), null);
+                        } else {
+                            //如果ItemList为空
+                            AppNamespaceDTO appNamespaceDTO = ApolloAPIUtil.getNamespace(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT, ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
+                            // 只有在创建成功了之后才去复制item
+                            if (appNamespaceDTO != null) {
+                                copyItem(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT, m_configUtil.getK8sNamespace(),  m_configUtil.getAppName(), appNamespaceDTO);
 
-                        //创建新的namespace
-                        String appNamespaceId = ApolloAPIUtil.createNamespace(m_configUtil.getApolloEnv(), appId,
-                                ConfigConsts.K8S_CLUSTER_DEFAULT,
-                                ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
 
-                        Map<String, String> itemMap = new HashMap<>();
 
-                        String namespaceId = ApolloAPIUtil.getNamespaceIdByParam(m_configUtil.getApolloEnv(), appId,
-                                ConfigConsts.K8S_CLUSTER_DEFAULT,
-                                ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
-                        if (appNamespaceId != null && namespaceId != null) {
-                            ItemChangeSets itemChangeSets = new ItemChangeSets();
-                            List<ItemDTO> createItems = new ArrayList<>();
-                            itemChangeSets.setDataChangeLastModifiedBy("wenyuan");
 
-                            AcuraDTO acuraDTO = null;
-                            for (int j = 0; j < itemDTOList.size(); j++) {
-                                ItemDTO itemDTO = itemDTOList.get(j);
-                                if (itemDTO.getValue().contains(ConfigConsts.PALCEHOLDER_NAMESPACE)) {
-                                    itemDTO.setValue(itemDTO.getValue().replace(ConfigConsts.PALCEHOLDER_NAMESPACE,
-                                            m_configUtil.getK8sNamespace()));
-                                    assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
-                                    continue;
-                                }
-                                if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPID)) {
-                                    if (acuraDTO == null) {
-                                        acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
-                                    }
-                                    itemDTO.setValue(acuraDTO.getId());
-                                    assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
-                                    continue;
-                                }
-                                if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPKEY)) {
-                                    if (acuraDTO == null) {
-                                        acuraDTO = getAcuraDTO(m_configUtil.getAppName(),m_configUtil.getK8sNamespace());
-                                    }
-                                    itemDTO.setValue(acuraDTO.getKey());
-                                    assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
-                                    continue;
-                                }
-                                assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                             }
-                            itemChangeSets.setCreateItems(createItems);
-                            ApolloAPIUtil.createItems(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
-                                    ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace(), itemChangeSets);
-                            ApolloAPIUtil.publish(m_configUtil.getApolloEnv(), appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
-                                    ConfigConsts.K8S_NAMESPACE_PRE + m_configUtil.getK8sNamespace());
-
-                            apolloConfig.setConfigurations(itemMap);
-                            m_configNeedForceRefresh.set(false);
-                            m_loadConfigFailSchedulePolicy.success();
-                            return apolloConfig;
                         }
                     }
                 }
 
-                url = assembleQueryConfigUrl(configService.getHomepageUrl(), appId, cluster, m_namespace, dataCenter,
+                url = assembleQueryConfigUrl(configService.getHomepageUrl(), appId, cluster, namespace, dataCenter,
                         m_remoteMessages.get(), m_configCache.get());
 
                 logger.info("Loading config from {}", url);
@@ -345,7 +326,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
 
                     ApolloConfig result = response.getBody();
 
-                    logger.info("Loaded config for {}: {}", m_namespace, result);
+                    logger.info("Loaded config for {}: {}", namespace, result);
 
                     return result;
                 } catch (ApolloConfigStatusCodeException ex) {
@@ -354,7 +335,7 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
                     if (ex.getStatusCode() == 404) {
                         String message = String
                                 .format("Could not find config for namespace - appId: %s, cluster: %s, namespace: %s, "
-                                        + "please check whether the configs are released in Apollo!", appId, cluster, m_namespace);
+                                        + "please check whether the configs are released in Apollo!", appId, cluster, namespace);
                         statusCodeException = new ApolloConfigStatusCodeException(ex.getStatusCode(), message);
                     }
                     Tracer.logEvent("ApolloConfigException", ExceptionUtil.getDetailMessage(statusCodeException));
@@ -400,6 +381,46 @@ public class RemoteConfigRepository extends AbstractConfigRepository {
             logger.error("调用讴歌失败:" + object.get("message").toString());
             return new AcuraDTO();
         }
+    }
+
+    private Map<String, String> copyItem(Env env, String appId, String clusterName, String namespaceName, String appName, AppNamespaceDTO appNamespaceDTO) {
+        Map<String, String> itemMap = new HashMap<>();
+        // 只有在创建成功了之后才去复制item
+        String namespaceId = String.valueOf(appNamespaceDTO.getId());
+        //获取默认的application下的 itemList
+        List<ItemDTO> itemDTOList = ApolloAPIUtil.getItems(env, appId, clusterName, "application");
+        ItemChangeSets itemChangeSets = new ItemChangeSets();
+        List<ItemDTO> createItems = new ArrayList<>();
+        itemChangeSets.setDataChangeLastModifiedBy("apollo");
+        AcuraDTO acuraDTO = null;
+        for (int j = 0; j < itemDTOList.size(); j++) {
+            ItemDTO itemDTO = itemDTOList.get(j);
+            if (itemDTO.getValue().contains(ConfigConsts.PALCEHOLDER_NAMESPACE)) {
+                itemDTO.setValue(itemDTO.getValue().replace(ConfigConsts.PALCEHOLDER_NAMESPACE,
+                        namespaceName));
+                assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
+            } else if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPID)) {
+                if (acuraDTO == null) {
+                    acuraDTO = getAcuraDTO(appName, namespaceName);
+                }
+                itemDTO.setValue(acuraDTO.getId());
+                assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
+            } else if (itemDTO.getValue().contains(ConfigConsts.PLACEHOLDER_ACURA_APPKEY)) {
+                if (acuraDTO == null) {
+                    acuraDTO = getAcuraDTO(appName, namespaceName);
+                }
+                itemDTO.setValue(acuraDTO.getKey());
+                assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
+            } else {
+                assemBlyItemMap(itemMap, namespaceId, createItems, itemDTO);
+            }
+        }
+        itemChangeSets.setCreateItems(createItems);
+        ApolloAPIUtil.createItems(env, appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
+                ConfigConsts.K8S_NAMESPACE_PRE + namespaceName, itemChangeSets);
+        ApolloAPIUtil.publish(env, appId, ConfigConsts.K8S_CLUSTER_DEFAULT,
+                ConfigConsts.K8S_NAMESPACE_PRE + namespaceName);
+        return itemMap;
     }
 
     String assembleQueryConfigUrl(String uri, String appId, String cluster, String namespace, String dataCenter,
